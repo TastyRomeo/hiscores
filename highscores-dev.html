@@ -1,5 +1,4 @@
 <html>
-  <!-- code by SO user AlexSp3 from https://stackoverflow.com/questions/68248339/how-to-load-csv-values-in-datatable -->
   <head>
     <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
@@ -9,11 +8,11 @@
         $.get("hiscores2023-10-06-20-21-39.csv",function(data) {
           let inner = ""
           let entries = data.split('\n');
-          for(let entry in entries){
+          for(let i in entries){
             inner += "<tr>"
-            columns = entry.split(',');
-            for(let column in columns) {
-              inner += "<td>"+column+"</td>"
+            columns = entries[i].split(',');
+            for(let j in columns) {
+              inner += "<td>"+columns[j]+"</td>"
             }
             inner += "</tr>"
           }
@@ -24,23 +23,23 @@
     </script>
   </head>
   <body>
-  <div class="row"><div class="col-md-12"><div class="panel panel-success"><div class="panel-heading "><h3 class="panel-title">10HP Hiscores</h3></div>
-<table border=1 class="table table-striped table-bordered table-hover table-condensed" id="myTable">
-<thead><tr><th title="Field #1">Display Name</th>
-<th title="Field #2">Constitution Level</th>
-<th title="Field #3">Constitution XP</th>
-<th title="Field #4">Combat Level</th>
-<th title="Field #5">Total Level</th>
-<th title="Field #6">Virtual Total Level</th>
-<th title="Field #7">Total XP</th>
-<th title="Field #8">RuneScore</th>
-<th title="Field #9">Quest Points</th>
-</tr></thead>
-<tbody id="dataBody">
-  <script>
-
-  </script>
-</tbody></table>
-</div></div></div>
-    </body>
+    <h3 class="panel-title">10HP Hiscores</h3>
+    <table border=1 id="myTable">
+      <thead>
+        <tr>
+          <th title="Field #1">Display Name</th>
+          <th title="Field #2">Constitution Level</th>
+          <th title="Field #3">Constitution XP</th>
+          <th title="Field #4">Combat Level</th>
+          <th title="Field #5">Total Level</th>
+          <th title="Field #6">Virtual Total Level</th>
+          <th title="Field #7">Total XP</th>
+          <th title="Field #8">RuneScore</th>
+          <th title="Field #9">Quest Points</th>
+        </tr>
+      </thead>
+      <tbody id="dataBody">
+      </tbody>
+    </table>
+  </body>
 </html>
