@@ -6,13 +6,13 @@
     <script>
       $(function(){
         $.get("hiscores2023-10-06-20-21-39.csv",function(data) {
-          let data = [];
+          let csv = [];
           let entries = data.split('\n');
           for(let i in entries){
-            data[i] = entries[i].split(',');
+            csv[i] = entries[i].split(',');
           }
           $('#myTable').DataTable( {
-            data: data
+            data: csv
           });
         });
       });
