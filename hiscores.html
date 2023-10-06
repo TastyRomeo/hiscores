@@ -3,26 +3,93 @@
         <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
     </head>
     <body>
-    <div id="container"></div>
+
+      <input type="file" id='yourfile' value='hiscores2023-10-06-20-21-39.csv' style='visibility:hidden'>
+      <table id='yourTable'></table>
 
     <script>
-    $.get('hiscores2023-10-06-20-21-39.csv',function(data) {
-        var html ='<table">';
-        var rows = data.split("\n");
-        rows.forEach( function getvalues(ourrow) {
-            html += "<tr>";
-            var columns = ourrow.split(",");
-            html += "<td>" + columns[0] + "</td>";
-            html += "<td>" + columns[1] + "</td>";
-            html += "<td>" + columns[2] + "</td>";
-            html += "</tr>";
-        })
 
-        html += "</table>";
 
-        $('#container').append(html);
+var CSVToJSON = function() {
+    this.parseCSV = function(file) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var data = e.target.result;
+            var json_object = _convertCSVtoJSON(data);
+            Json2table(json_object);
+        };
+        reader.onerror = function(ex) {
+            console.log(ex);
+        };
+        reader.readAsBinaryString(file);
+    };
+};
 
-    });
+function _convertCSVtoJSON(csv) {
+
+    var lines = csv.split("\n");
+    var result = [];
+
+    // NOTE: If your columns contain commas in their values, you'll need
+    // to deal with those before doing the next step 
+    // (you might convert them to &&& or something, then covert them back later)
+    // jsfiddle showing the issue https://jsfiddle.net/
+
+    var headers = lines[0].split(",");
+
+    for (var i = 1; i < lines.length; i++) {
+        var obj = {};
+        var currentline = lines[i].split(",");
+
+        for (var j = 0; j < headers.length; j++) {
+            obj[headers[j]] = currentline[j];
+        }
+        result.push(obj);
+    }
+    return result; //JSON
+}
+
+function Json2table(obj) {
+    $("#yourTable").html("");
+    var largerKey = [];
+    var maxkeylength = 0;
+    var rows = Object.keys(obj);
+
+    // This part is just to take the row with the higher number of columns in case your table isn´t an square
+
+    for (var i = 0; i < rows.length; i++) {
+        var keys = Object.keys(obj[i]);
+
+        if (maxkeylength < keys.length) {
+            largerKey = keys;
+            maxkeylength = keys.length;
+        }
+    }
+
+    ///////////////////////////////////////
+
+    $("#yourTable").append("<thead>");
+    for (var i = 0; i < largerKey.length; i++) {
+        $("#yourTable").append("<th>" + largerKey[i] + "</th>");
+    }
+    $("#yourTable").append("</thead>");
+
+    for (var i = 0; i < rows.length; i++) {
+        var keys = Object.keys(obj[i]);
+        var csvData = "";
+        for (var j = 0; j < keys.length; j++) {
+            csvData += "<td>" + obj[i][keys[j]] + "</td>";
+        }
+        $("#yourTable").append("<tr>" + csvData + "</tr>");
+    }
+    return;
+}
+
+        $.function(){
+            var files = document.getElementById('yourfile').files; // FileList object
+    var csv2json = new CSVToJSON();
+    csv2json.parseCSV(files[0]);
+        }
 
     </script>
     </body>
