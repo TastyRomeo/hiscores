@@ -85,11 +85,11 @@ function Json2table(obj) {
     return;
 }
 
-        $.function(){
+        $(function(){
             var files = document.getElementById('yourfile').files; // FileList object
     var csv2json = new CSVToJSON();
     csv2json.parseCSV(files[0]);
-        }
+        });
 
     </script>
     </body>
