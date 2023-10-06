@@ -6,40 +6,21 @@
     <script>
       $(function(){
         $.get("hiscores2023-10-06-20-21-39.csv",function(data) {
-          let inner = ""
+          let data = [];
           let entries = data.split('\n');
           for(let i in entries){
-            inner += "<tr>"
-            columns = entries[i].split(',');
-            for(let j in columns) {
-              inner += "<td>"+columns[j]+"</td>"
-            }
-            inner += "</tr>"
+            data[i] = entries[i].split(',');
           }
-          $("#dataBody").html(inner)
+          $('#myTable').DataTable( {
+            data: data
+          });
         });
-        let table = new DataTable('#myTable');
       });
     </script>
   </head>
   <body>
     <h3 class="panel-title">10HP Hiscores</h3>
     <table border=1 id="myTable">
-      <thead>
-        <tr>
-          <th title="Field #1">Display Name</th>
-          <th title="Field #2">Constitution Level</th>
-          <th title="Field #3">Constitution XP</th>
-          <th title="Field #4">Combat Level</th>
-          <th title="Field #5">Total Level</th>
-          <th title="Field #6">Virtual Total Level</th>
-          <th title="Field #7">Total XP</th>
-          <th title="Field #8">RuneScore</th>
-          <th title="Field #9">Quest Points</th>
-        </tr>
-      </thead>
-      <tbody id="dataBody">
-      </tbody>
     </table>
   </body>
 </html>
