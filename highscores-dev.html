@@ -7,7 +7,7 @@
     <script>
       $(function(){
         $.get("hiscores2023-10-06-20-21-39.csv",function(data) {
-          let entries = data.split(' ');
+          let entries = data.split('\n');
           inner = ""
           for(let entry in entries){
             inner += "<tr>"
