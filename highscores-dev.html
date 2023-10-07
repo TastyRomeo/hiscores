@@ -77,7 +77,11 @@
                 title: "RuneScore",
                 className: "dt-body-right dt-head-center",
                 render: function( data, type, row ) {
-                  return parseInt(data).toLocaleString('en-US');
+                  if (data!="") {
+                    return parseInt(data).toLocaleString('en-US');
+                  } else {
+                    return "";
+                  }
                 },
                 type: 'num-fmt'
               },
