@@ -17,6 +17,10 @@
             csv[i] = entries[i].split(',');
           }
           table = $('#myTable').DataTable( {
+            language: {
+              decimal: ",",
+              thousands: "."
+            }
             columns: [
               { 
                 title: "Display Name",
@@ -32,9 +36,9 @@
                 className: "dt-body-right dt-head-center",
                 render: function( data, type, row ) {
                   let parts = data.split(".")
-                  return parts[0]+"<span class='frac hidden'>."+parts[1]+"</span>"
+                  return parseInt(parts[0]).toLocaleString('en-US')+"<span class='frac hidden'>."+parts[1]+"</span>"
                 },
-                type: 'num'
+                type: 'html-num-fmt'
               },
               {
                 title: "Combat Level",
@@ -43,7 +47,7 @@
                   let parts = data.split(".")
                   return parseInt(parts[0]).toLocaleString('en-US')+"<span class='frac hidden'>."+parts[1]+"</span>"
                 },
-                type: 'num'
+                type: 'html-num-fmt'
               },
               { 
                 title: "Total Level",
@@ -51,7 +55,7 @@
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
                 },
-                type: 'num'
+                type: 'num-fmt'
                 
               },
               { 
@@ -67,7 +71,7 @@
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
                 },
-                type: 'num'
+                type: 'num-fmt'
               },
               { 
                 title: "RuneScore",
@@ -75,12 +79,12 @@
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
                 },
-                type: 'num'
+                type: 'num-fmt'
               },
               { 
                 title: "Quest Points",
                 className: "dt-body-right dt-head-center",
-                type: 'num'
+                type: 'num-fmt'
               },
             ],
             data: csv
