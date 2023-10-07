@@ -39,24 +39,37 @@
                 className: "dt-body-right dt-head-center",
                 render: function( data, type, row ) {
                   let parts = data.split(".")
-                  return parts[0]+"<span class='frac hidden'>."+parts[1]+"</span>"
+                  return parseInt(parts[0]).toLocaleString('en-US')+"<span class='frac hidden'>."+parts[1]+"</span>"
                 }
               },
               { 
                 title: "Total Level",
-                className: "dt-body-right dt-head-center"
+                className: "dt-body-right dt-head-center",,
+                render: function( data, type, row ) {
+                  return parseInt(data).toLocaleString('en-US');
+                }
+                
               },
               { 
                 title: "Virtual Total Level",
-                className: "dt-body-right dt-head-center"
+                className: "dt-body-right dt-head-center",
+                render: function( data, type, row ) {
+                  return parseInt(data).toLocaleString('en-US');
+                }
               },
               { 
                 title: "Total XP",
-                className: "dt-body-right dt-head-center"
+                className: "dt-body-right dt-head-center",
+                render: function( data, type, row ) {
+                  return parseInt(data).toLocaleString('en-US');
+                }
               },
               { 
                 title: "RuneScore",
-                className: "dt-body-right dt-head-center"
+                className: "dt-body-right dt-head-center",
+                render: function( data, type, row ) {
+                  return parseInt(data).toLocaleString('en-US');
+                }
               },
               { 
                 title: "Quest Points",
