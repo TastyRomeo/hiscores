@@ -67,7 +67,7 @@
           });
         });
         $('input[name="fracshow"]').change(function () {
-          if ($('input[name="fracshow"]').is(":checked") {
+          if ($('input[name="fracshow"]').is(":checked")) {
             table.rows().every(function(rowIndex){
               table.columns().every(function(colIndex){
                 let cell = table.cell({row:rowIndex,column:colIndex})
