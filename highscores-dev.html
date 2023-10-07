@@ -1,4 +1,4 @@
-<html>
+<html class="dark">
   <head>
     <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
@@ -14,15 +14,42 @@
           }
           $('#myTable').DataTable( {
             columns: [
-              { title: "Display Name" },
-              { title: "Constitution Level" },
-              { title: "Constitution XP" },
-              { title: "Combat Level" },
-              { title: "Total Level" },
-              { title: "Virtual Total Level" },
-              { title: "Total XP" },
-              { title: "RuneScore" },
-              { title: "Quest Points" }
+              { 
+                title: "Display Name",
+                className: "dt-left"
+              },
+              { 
+                title: "Constitution Level",
+                className: "dt-right"
+              },
+              { 
+                title: "Constitution XP",
+                className: "dt-right"
+              },
+              {
+                title: "Combat Level",
+                className: "dt-right"
+              },
+              { 
+                title: "Total Level",
+                className: "dt-right"
+              },
+              { 
+                title: "Virtual Total Level",
+                className: "dt-right"
+              },
+              { 
+                title: "Total XP",
+                className: "dt-right"
+              },
+              { 
+                title: "RuneScore",
+                className: "dt-right"
+              },
+              { 
+                title: "Quest Points",
+                className: "dt-right"
+              },
             ],
             data: csv
           });
