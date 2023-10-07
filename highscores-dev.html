@@ -7,6 +7,7 @@
     </style>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script>
+      var table;
       $(function(){
         $.get("hiscores2023-10-07-12-11-05.csv",function(data) {
           let csv = [];
@@ -15,7 +16,7 @@
           for(let i in entries){
             csv[i] = entries[i].split(',');
           }
-          $('#myTable').DataTable( {
+          table = $('#myTable').DataTable( {
             columns: [
               { 
                 title: "Display Name",
