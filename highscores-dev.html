@@ -31,7 +31,7 @@
                 className: "dt-body-right dt-head-center",
                 render: function( data, type, row ) {
                   let parts = data.split(".")
-                  return parts[0]+"<span class='frac'>."+parts[1]+"</span>"
+                  return parts[0]+"<span class='frac hidden'>."+parts[1]+"</span>"
                 }
               },
               {
@@ -39,7 +39,7 @@
                 className: "dt-body-right dt-head-center",
                 render: function( data, type, row ) {
                   let parts = data.split(".")
-                  return parts[0]+"<span class='frac'>."+parts[1]+"</span>"
+                  return parts[0]+"<span class='frac hidden'>."+parts[1]+"</span>"
                 }
               },
               { 
@@ -66,11 +66,34 @@
             data: csv
           });
         });
+        $('input[name="fracshow"]').change(function () {
+          if ((this).is(':checked')) {
+            table.rows().every(function(rowIndex){
+              table.columns().every(function(colIndex){
+                let cell = table.cell({row:rowIndex,column:colIndex})
+                let span = cell.nodes().toJQuery().find('.frac')
+                span.addClass("hidden")
+              });
+            });
+          }
+          else {
+            table.rows().every(function(rowIndex){
+              table.columns().every(function(colIndex){
+                let cell = table.cell({row:rowIndex,column:colIndex})
+                let span = cell.nodes().toJQuery().find('.frac')
+                span.removeClass("hidden")
+              });
+            });
+          }
+        });
+    alert('changed');
+ });
       });
     </script>
   </head>
   <body>
     <h3 class="panel-title">10HP Hiscores</h3>
     <table border=1 id="myTable"></table>
+    <input type="checkbox" id='fracshow' value="fracshow" /><label for="fracshow">Show decimals</label>
   </body>
 </html>
