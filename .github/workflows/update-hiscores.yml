@@ -10,7 +10,7 @@ jobs:
             - uses: actions/setup-node@v3
             - uses: actions/setup-python@v4
             - name: Fetch resources
-              run: ./scripts/updateHiscores.py
+              run: python3 ./scripts/updateHiscores.py
             - name: Update resources
               uses: test-room-7/action-update-file@v1
               with:
