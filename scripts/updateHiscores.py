@@ -40,12 +40,12 @@ def calculateEliteLevel(xp: float) -> int:
             return i;
 
 
-clans = ["Hitpoint Hierarchy","Shortbow","Level IIIs","Safespot","Alt Central"]
+clans = ["Hitpoint Hierarchy"]
 usernames=[]
 for clan in clans:
     usernames += getUsernamesFromClan(clan)
 
-usernames += ["Speedruns","Powerhouse","Urekiam","Dragonheart","Myiah","9HitPts","9HP Lexus","I have 9 HP","9hp Skilling","Ism","9 Life Point","Ludo Bagman","Wahei","Im 9 HP","9HP Keit","9HP Jchusid","Lil Heathen","Evildark","9hper","9 HlTPOlNTS","GIAI QUEEN","Mikey 9HP","M1LK BUCKET","NECROMLOCKE"]
+usernames += ["Powerhouse","Urekiam","Dragonheart","Myiah"]
 
 usernames = [username.replace(" "," ") for username in usernames]
 usernames = sorted(usernames, key=str.casefold)
