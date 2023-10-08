@@ -1,5 +1,7 @@
 name: Update Hiscores
-on: repository_dispatch
+on:
+ - repository_dispatch
+ - workflow_dispatch
 jobs:
     hiscores:
         runs-on: ubuntu-latest
