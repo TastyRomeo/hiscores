@@ -53,7 +53,7 @@ usernames = sorted(usernames, key=str.casefold)
 # Just for testing purposes
 usernames=["Toasty Romeo","Mihawk","pet","Cordious"]
 
-csv = open("../data/hiscores.csv", "w+")
+csv = open("./data/hiscores.csv", "w+")
 empty = True
 for username in usernames:
     totExp = 0
