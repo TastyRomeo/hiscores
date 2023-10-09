@@ -5,7 +5,7 @@ from urllib.request import Request, urlopen
 import math
 
 def getUsernamesFromCsv() -> list[str]:
-    data = pd.read_csv('usernames.csv',header=None)
+    data = pd.read_csv('data/usernames.csv',header=None)
     return data[data.columns[0]].tolist()
 
 def combatLevel(attLvl: int, strLvl: int, mgcLvl: int, rngLvl: int, necLvl: int, defLvl: int, conLvl: int, pryLvl: int, sumLvl: int) -> float:
