@@ -39,7 +39,7 @@ def calculateEliteLevel(xp: float) -> int:
         if xp >= L[i] and xp < L[i+1]:
             return i;
 
-
+'''
 clans = ["Hitpoint Hierarchy"]
 usernames=[]
 for clan in clans:
@@ -49,6 +49,9 @@ usernames += ["Powerhouse","Urekiam","Dragonheart","Myiah"]
 
 usernames = [username.replace(" "," ") for username in usernames]
 usernames = sorted(usernames, key=str.casefold)
+'''
+# Just for testing purposes
+usernames=["Toasty Romeo","Mihawk","pet","Cordious"]
 
 csv = open("hiscores.csv", "a+")
 empty = True
