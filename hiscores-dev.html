@@ -9,7 +9,7 @@
     <script>
       var table;
       $(function(){
-        $.get({url:"hiscores2023-10-07-12-11-05.csv",cache:false,success:function(data) {
+        $.get({url:"data/hiscores.csv",cache:false,success:function(data) {
           let csv = [];
           let entries = data.split('\n');
           entries.pop()
