@@ -4,8 +4,8 @@ import requests
 from urllib.request import Request, urlopen
 import math
 
-def getUsernamesFromClan(clan: str) -> list[str]:
-    data = pd.read_csv('http://services.runescape.com/m=clan-hiscores/members_lite.ws?clanName='+ clan.replace(" ","%20").replace(" ","%20"),encoding='cp1252')
+def getUsernamesFromCsv() -> list[str]:
+    data = pd.read_csv('usernames.csv',header=None)
     return data[data.columns[0]].tolist()
 
 def combatLevel(attLvl: int, strLvl: int, mgcLvl: int, rngLvl: int, necLvl: int, defLvl: int, conLvl: int, pryLvl: int, sumLvl: int) -> float:
@@ -16,15 +16,15 @@ def combatLevel(attLvl: int, strLvl: int, mgcLvl: int, rngLvl: int, necLvl: int,
 
 def getRunemetricsData(url: str) -> str:
     req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+    RMdata=None
     # Try a few times...
-    for i in range(5):
+    for i in range(10):
         try:
             res = requests.get(urlopen( req).geturl())
             RMdata = json.loads(res.text)
             break
         except:
             continue
-
     return RMdata
 
 def calculateLevel(xp: float) -> int:
@@ -38,83 +38,24 @@ def calculateEliteLevel(xp: float) -> int:
     for i in range(len(L)):
         if xp >= L[i] and xp < L[i+1]:
             return i;
+            
+usernames = getUsernamesFromCsv()ous"]
 
-'''
-clans = ["Hitpoint Hierarchy"]
-usernames=[]
-for clan in clans:
-    usernames += getUsernamesFromClan(clan)
 
-usernames += ["Powerhouse","Urekiam","Dragonheart","Myiah"]
-
-usernames = [username.replace(" "," ") for username in usernames]
-usernames = sorted(usernames, key=str.casefold)
-'''
-# Just for testing purposes
-usernames=["Toasty Romeo","Mihawk","pet","Cordious"]
-
-csv = open("./data/hiscores.csv", "w+")
+csv = open("data/hiscores.csv", "w+")
 empty = True
 for username in usernames:
-    totExp = 0
-    conExp = 0
-    RScore = 0
-    QPoint = 0
-    virLvl = 0
-    
-    cmbLvl = 1
-    totLvl = 29
-    attLvl = 1
-    strLvl = 1
-    mgcLvl = 1
-    rngLvl = 1
-    necLvl = 1
-    defLvl = 1
-    conLvl = 1
-    pryLvl = 1
-    sumLvl = 1
-    
     HSURL = "https://secure.runescape.com/m=hiscore/index_lite.ws?player=" + username.replace(" ","%20")
+    useRM = False
     try:
         HSData = pd.read_csv(HSURL,encoding='cp1252',header=None)
-    except Exception as e:
-        # User could not be found on HiScores, skip!
-        continue;
-    
-    lvlList = HSData[HSData.columns[1]].tolist()
-    expList = HSData[HSData.columns[2]].tolist()
+        lvlList = HSData[HSData.columns[1]].tolist()
+        expList = HSData[HSData.columns[2]].tolist()
 
-    RMdata = getRunemetricsData("https://apps.runescape.com/runemetrics/profile/profile?user=" + username.replace(" ","%20") + "&activities=0")
-        
-    if not "error" in RMdata:
-        # Get data from RuneMetrics
-        totExp = RMdata["totalxp"]
-        totLvl = RMdata["totalskill"]
-        for skill in RMdata["skillvalues"]:
-            level = skill["level"]
-            id = skill["id"]
-            match id:
-                case 0: attLvl = level
-                case 1: defLvl = level
-                case 2: strLvl = level
-                case 3:
-                    conLvl = level
-                    conExp = skill["xp"]/10
-                case 4: rngLvl = level
-                case 5: pryLvl = level
-                case 6: mgcLvl = level
-                case 23: sumLvl = level
-                case 28: necLvl = level
-            if id != 26:
-                virLvl += calculateLevel(skill["xp"]/10)
-            else:
-                virLvl += calculateEliteLevel(skill["xp"]/10)
-    else:
-        # Get data from Hiscores
         totExp = int(expList[0])
         totLvl = lvlList[0]
-        conExp = expList[4]
-    
+        conExp = int(expList[4])
+        
         attLvl = lvlList[1]
         strLvl = lvlList[3]
         mgcLvl = lvlList[7]
@@ -124,40 +65,89 @@ for username in usernames:
         conLvl = lvlList[4]
         pryLvl = lvlList[6]
         sumLvl = lvlList[24]
-        virLvl = sum([(calculateLevel(expList[i]) if i != 28 else calculateEliteLevel(expList[i])) for i in range(1,30)])
+        virLvl = sum([(calculateLevel(expList[i]) if i != 27 else calculateEliteLevel(expList[i])) for i in range(1,30)])
         
+        RScore = HSData[HSData.columns[1]].tolist()[54]
+        if RScore == -1:
+            RScore = ""
+            
         # Check if only unranked skill is Constitution
-        if conExp == -1:
-            if expList[1:30].count(-1) == 1:
-                # We can fix this
-                conLvl = totLvl - sum(lvlList[1:30]) + 1 # +1 to correct for also subtracting the incorrect 1 Consititution level
-                conExp = totExp - sum(expList[1:30]) - 1 # -1 to correct for also subtracting the incorrect -1 Constitution xp
-                virLvl += conLvl
+        if conExp == -1 and expList[1:30].count(-1) == 1:
+            # We can fix this with HiScores only
+            conLvl = totLvl - sum(lvlList[1:30]) + 1 # +1 to correct for also subtracting the incorrect 1 Consititution level
+            conExp = int(totExp - sum(expList[1:30]) - 1) # -1 to correct for also subtracting the incorrect -1 Constitution xp
+            virLvl += conLvl
+        elif expList[1:30].count(-1) >= 1:
+            useRM = True
+            
+    except Exception as e:
+            useRM = True
+
+    if useRM:
+        # Try using RuneMetrics
+        RMdata = getRunemetricsData("https://apps.runescape.com/runemetrics/profile/profile?user=" + username.replace(" ","%20") + "&activities=0")
+        if RMdata == None:
+            print("Should be removed from usernames: "+f"{username:<12s}"+" (could not load RuneMetrics data after 10 tries)")
+            continue;
+        if "error" in RMdata:
+            print("Should be removed from usernames: "+f"{username:<12s}"+" (could not confirm hp level)")
+            continue;
+        
+        totExp = RMdata["totalxp"]
+        totLvl = RMdata["totalskill"]
+        virLvl = 0
+        for skill in RMdata["skillvalues"]:
+            level = skill["level"]
+            id = skill["id"]
+            match id:
+                case 0: attLvl = level
+                case 1: defLvl = level
+                case 2: strLvl = level
+                case 3:
+                    conLvl = level
+                    conExp = math.floor(skill["xp"]/10)
+                case 4: rngLvl = level
+                case 5: pryLvl = level
+                case 6: mgcLvl = level
+                case 23: sumLvl = level
+                case 28: necLvl = level
+            if id != 26:
+                virLvl += calculateLevel(skill["xp"]/10)
             else:
-                # We can't fix this
-                continue;
+                virLvl += calculateEliteLevel(skill["xp"]/10)
+                
+        RScore = ""
+        
+    # Filter out mains and skillers
+    if conLvl > 15:
+        print("Should be removed from usernames: "+f"{username:<12s}"+" (hp level is "+str(conLvl)+")")
+        continue
+    if max(attLvl, strLvl, mgcLvl, rngLvl, necLvl, defLvl, pryLvl, sumLvl) < 11:
+        print("Should be removed from usernames: "+f"{username:<12s}"+" (skiller)")
+        continue;
     
     cmbLvl = combatLevel(attLvl, strLvl, mgcLvl, rngLvl, necLvl, defLvl, conLvl, pryLvl, sumLvl)
-    
-    RScore = HSData[HSData.columns[1]].tolist()[54]
-    if RScore == -1:
-        RScore = ""
 
-    QPdata = getRunemetricsData("https://apps.runescape.com/runemetrics/quests?user=" + username.replace(" ","%20").replace(" ","%20"))
+    QPdata = getRunemetricsData("https://apps.runescape.com/runemetrics/quests?user=" + username.replace(" ","%20"))
     
+    QPoint = 0
     if QPdata["quests"] != []:
         for quest in QPdata["quests"]:
             if quest["status"] == "COMPLETED":
                 QPoint += quest["questPoints"]
     else:
         QPoint = ""
-            
     
-    if conExp < 2746:
-        # Constitution is 15 or lower
-        if not empty:
-            csv.write("\n")
-        else:
-            empty = False
-        csv.write(username+","+str(conLvl)+","+str(conExp)+","+f"{cmbLvl:4.3f}"+","+str(totLvl)+","+str(virLvl)+","+str(totExp)+","+str(RScore)+","+str(QPoint))
+    # Subtract Constitution level and xp
+    totLvl -= conLvl
+    totExp -= conExp
+    virLvl -= conLvl
+
+    print(f"| {username:<12s} | {conLvl:>2} | {conExp:>4} | {cmbLvl:>7.3f} | {totLvl:>4} | {virLvl:>4} | {totExp:>10} | {RScore:>5} | {QPoint:>3} |")
+
+    if not empty:
+        csv.write("\n")
+    else:
+        empty = False
+    csv.write(username+","+str(conLvl)+","+str(conExp)+","+str(cmbLvl)+","+str(totLvl)+","+str(virLvl)+","+str(totExp)+","+str(RScore)+","+str(QPoint))
 csv.close()
