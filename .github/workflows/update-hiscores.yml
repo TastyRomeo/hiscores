@@ -16,6 +16,6 @@ jobs:
             - name: Commit new hiscores
               uses: test-room-7/action-update-file@v1
               with:
-                  file-path: ./data/hiscores.csv
+                  file-path: data/hiscores.csv
                   commit-msg: Update hiscores
                   github-token: ${{ secrets.GITHUB_TOKEN }}
