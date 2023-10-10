@@ -1,7 +1,9 @@
 name: Update Hiscores
 on:
- - repository_dispatch
- - workflow_dispatch
+  workflow_dispatch:
+  schedule:
+    - cron: '6 */6 * * *'
+ 
 jobs:
     hiscores:
         runs-on: ubuntu-latest
@@ -11,11 +13,11 @@ jobs:
             - uses: actions/setup-python@v4
             - name: Generate new hiscores
               run: python3 ./scripts/updateHiscores.py
-            - name: Commit new hiscores
+            - name: Commit files
               uses: test-room-7/action-update-file@v1
               with:
                   file-path: |
                     data/hiscores.csv
                     data/usernames.csv
-                  commit-msg: Update hiscores
+                  commit-msg: Update hiscores and usernames
                   github-token: ${{ secrets.GITHUB_TOKEN }}
