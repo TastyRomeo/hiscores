@@ -21,7 +21,7 @@
               decimal: ".",
               thousands: ","
             },
-            order: [[5, 'desc'],[6, 'desc'],[0,'asc']],
+            order: [[5,'desc'],[6,'desc'],[7,'desc'],[0,'asc']],
             columns: [
               { 
                 title: "Display Name",
@@ -48,7 +48,7 @@
                 title: "Total Level",
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
-                orderData: [[3,'desc'],[4,'desc'],[5,'desc'],[0,'asc']],
+                orderData: [3,4,5,6,7],
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
                 },
@@ -59,7 +59,7 @@
                 title: "Virtual Total Level",
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
-                orderData: [[4,'desc'],[5,'desc'],[0,'asc']],
+                orderData: [4,5,6,7],
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
                 }
@@ -68,7 +68,7 @@
                 title: "Total XP",
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
-                orderData: [[5,'desc'],[0,'asc']],
+                orderData: [5,6,7],
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
                 },
@@ -78,7 +78,7 @@
                 title: "RuneScore",
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
-                orderData: [[6,'desc'],[0,'asc']],
+                orderData: [6,5,7],
                 render: function( data, type, row ) {
                   if (data!="") {
                     return parseInt(data).toLocaleString('en-US');
@@ -92,7 +92,7 @@
                 title: "Quest Points",
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
-                orderData: [[7,'desc'],[0,'asc']],
+                orderData: [7,5,6],
                 type: 'num-fmt'
               },
             ],
