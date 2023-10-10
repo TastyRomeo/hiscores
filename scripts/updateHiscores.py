@@ -45,8 +45,6 @@ def calculateEliteLevel(xp: int) -> int:
 usernames = getUsernamesFromCsv()
 
 hsFile = open("data/hiscores.csv", "w+")
-empty = True
-
 for username in usernames:
     RScore = 0
     try:
@@ -74,10 +72,10 @@ for username in usernames:
         # Try using RuneMetrics
         RMData = getRuneMetrics("https://apps.runescape.com/runemetrics/profile/profile?user=" + username.replace(" ","%20") + "&activities=0")
         if RMData == None:
-            print("Skipped "+f"{username:<12s}"+" (could not load RuneMetrics)")
+            print(f"{username:<12s}: could not load RuneMetrics")
             continue;
         if "error" in RMData:
-            print("Should be removed from usernames: "+f"{username:<12s}"+" (could not confirm hp level)")
+            print(f"{username:<12s}: could not confirm hp level")
             continue;
         
         totLvl = RMData["totalskill"]
@@ -118,10 +116,10 @@ for username in usernames:
 
     # Filter out mains and skillers
     if conLvl > 15:
-        print("Should be removed from usernames: "+f"{username:<12s}"+" (hp level is "+str(conLvl)+")")
+        print(f"{username:<12s}: hp level is "+str(conLvl))
         continue
     if max(attLvl, strLvl, mgcLvl, rngLvl, necLvl, defLvl, pryLvl, sumLvl) < 11:
-        print("Should be removed from usernames: "+f"{username:<12s}"+" (skiller)")
+        print(f"{username:<12s}: is a skiller")
         continue;
             
     virLvl = sum([(calculateLevel(expList[i]) if i != 26 else calculateEliteLevel(expList[i])) for i in range(29)])
@@ -143,10 +141,5 @@ for username in usernames:
     virLvl -= conLvl
 
     print(f"| {username:<12s} | {conLvl:>2} | {conExp:>4} | {totLvl:>4} | {virLvl:>4} | {totExp:>10} | {RScore:>5} | {QPoint:>3} |")
-
-    if not empty:
-        hsFile.write("\n")
-    else:
-        empty = False
-    hsFile.write(username+","+str(conLvl)+","+str(conExp)+","+str(totLvl)+","+str(virLvl)+","+str(totExp)+","+str(RScore)+","+str(QPoint))
+    hsFile.write(username+","+str(conLvl)+","+str(conExp)+","+str(totLvl)+","+str(virLvl)+","+str(totExp)+","+str(RScore)+","+str(QPoint)+"\n")
 hsFile.close()
