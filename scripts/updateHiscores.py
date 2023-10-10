@@ -2,22 +2,24 @@ import csv
 import requests
 import math
 
-def download(url: str, maxTries: int):
-    status = 418
-    for _ in range(maxTries):
-        response = requests.get(url, headers={'content-type':'application/json'})
-        if response.status_code == 200:
-            return response
+def download(url: str):
+    response = requests.get(url, headers={'content-type':'application/json'})
+    if response.status_code == 200:
+        return response
     raise Exception("404")
 
 def getHiScores(username: str):
     url = "https://secure.runescape.com/m=hiscore/index_lite.ws?player=" + username.replace(" ","%20")
-    res = download(url, 2).text
+    res = download(url).text
     rows = res.split("\n")[:-1]
     return [ [int(x) for x in row.split(",")[1:]] for row in rows ]
     
 def getRuneMetrics(url: str):
-    return download(url, 5).json()
+    for _ in range(5):
+        res = download(url)
+        try: return res.json()
+        except: pass
+    return None
 
 def getUsernamesFromCsv() -> list[str]:
     return [_[0] for _ in csv.reader(open('data/usernames.csv'))]
@@ -68,11 +70,11 @@ for username in usernames:
             lvlList[i] = totLvl - sum(lvlList) + 1 # +1 to correct for subtracting the incorrect level set as 1
             expList[i] = totExp - sum(expList) - 1 # -1 to correct for subtracting the incorrect experience set as -1
     
-    except Exception:
+    except:
         # Try using RuneMetrics
         RMData = getRuneMetrics("https://apps.runescape.com/runemetrics/profile/profile?user=" + username.replace(" ","%20") + "&activities=0")
         if RMData == None:
-            print("Skipped "+f"{username:<12s}"+" (could not load RuneMetrics data after 10 tries)")
+            print("Skipped "+f"{username:<12s}"+" (could not load RuneMetrics)")
             continue;
         if "error" in RMData:
             print("Should be removed from usernames: "+f"{username:<12s}"+" (could not confirm hp level)")
