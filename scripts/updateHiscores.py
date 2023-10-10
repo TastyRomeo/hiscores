@@ -32,7 +32,6 @@ def getUsernamesFromCsv() -> list[str]:
             temp.add(userLower)
             srtd.append(user)
     srtd.sort(key=str.lower)
-    print(srtd)
     return srtd
 '''
 def combatLevel(attLvl: int, strLvl: int, mgcLvl: int, rngLvl: int, necLvl: int, defLvl: int, conLvl: int, pryLvl: int, sumLvl: int) -> float:
@@ -58,13 +57,13 @@ usernames = getUsernamesFromCsv()
 hsFile = open("data/hiscores.csv", "w+")
 unFile = open("data/usernames.csv", "w+")
 for username in usernames:
-    RScore = 0
+    RScore = ""
     try:
         # Try using HiScores
         HSData = getHiScores(username)
         
         RScore = HSData[54][0]
-        if RScore == -1: RScore = 0
+        if RScore == -1: RScore = ""
         
         totLvl = HSData[0][0]
         totExp = HSData[0][1]
@@ -141,12 +140,9 @@ for username in usernames:
     #cmbExp = attExp + strExp + mgcExp + rngExp + necExp + defExp + conExp + pryExp + sumExp
 
     QPdata = getRuneMetrics("https://apps.runescape.com/runemetrics/quests?user=" + username.replace(" ","%20"))
-    
-    QPoint = 0
-    if QPdata["quests"] != []:
-        for quest in QPdata["quests"]:
-            if quest["status"] == "COMPLETED":
-                QPoint += quest["questPoints"]
+
+    QPoint = sum([_["questPoints"] for _ in QPdata["quests"] if _["status"] == "COMPLETED"])
+    if QPoint == 0: QPoint = ""
 
     # Subtract Constitution level and xp
     totLvl -= conLvl
