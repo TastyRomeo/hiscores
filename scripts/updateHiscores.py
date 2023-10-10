@@ -21,8 +21,19 @@ def getRuneMetrics(url: str):
         except: pass
     return None
 
+# Takes usernames from csv
 def getUsernamesFromCsv() -> list[str]:
-    return [_[0] for _ in csv.reader(open('data/usernames.csv'))]
+    orig = [_[0] for _ in csv.reader(open('data/usernames.csv'))]
+    temp = set()
+    srtd = []
+    for user in orig:
+        userLower = user.lower()
+        if userLower not in temp:
+            temp.add(userLower)
+            srtd.append(user)
+    srtd.sort(key=str.lower)
+    print(srtd)
+    return srtd
 '''
 def combatLevel(attLvl: int, strLvl: int, mgcLvl: int, rngLvl: int, necLvl: int, defLvl: int, conLvl: int, pryLvl: int, sumLvl: int) -> float:
     offensive = 13/10 * max( (attLvl + strLvl), 2*mgcLvl, 2*rngLvl, 2*necLvl )
@@ -41,10 +52,11 @@ def calculateEliteLevel(xp: int) -> int:
     for i in range(len(L)):
         if xp >= L[i] and xp < L[i+1]:
             return i;
-            
+
 usernames = getUsernamesFromCsv()
 
 hsFile = open("data/hiscores.csv", "w+")
+unFile = open("data/usernames.csv", "w+")
 for username in usernames:
     RScore = 0
     try:
@@ -73,6 +85,7 @@ for username in usernames:
         RMData = getRuneMetrics("https://apps.runescape.com/runemetrics/profile/profile?user=" + username.replace(" ","%20") + "&activities=0")
         if RMData == None:
             print(f"{username:<12s}: could not load RuneMetrics")
+            unFile.write(username+"\n")
             continue;
         if "error" in RMData:
             print(f"{username:<12s}: could not confirm hp level")
@@ -142,4 +155,6 @@ for username in usernames:
 
     print(f"| {username:<12s} | {conLvl:>2} | {conExp:>4} | {totLvl:>4} | {virLvl:>4} | {totExp:>10} | {RScore:>5} | {QPoint:>3} |")
     hsFile.write(username+","+str(conLvl)+","+str(conExp)+","+str(totLvl)+","+str(virLvl)+","+str(totExp)+","+str(RScore)+","+str(QPoint)+"\n")
+    unFile.write(username+"\n")
 hsFile.close()
+unFile.close()
