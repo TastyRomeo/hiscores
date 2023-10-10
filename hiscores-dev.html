@@ -39,15 +39,6 @@
                 },
                 type: 'num-fmt'
               },
-              {
-                title: "Combat Level",
-                className: "dt-body-right dt-head-center",
-                render: function( data, type, row ) {
-                  let parts = data.split(".")
-                  return parseInt(parts[0]).toLocaleString('en-US')+"<span class='frac hidden'>."+parts[1]+"</span>"
-                },
-                type: 'html-num-fmt'
-              },
               { 
                 title: "Total Level",
                 className: "dt-body-right dt-head-center",
@@ -93,6 +84,7 @@
             data: csv
           });
         }});
+        /*
         $('input[name="fracshow"]').change(function () {
           if ($('input[name="fracshow"]').is(":checked")) {
             table.rows().every(function(rowIndex){
@@ -112,13 +104,13 @@
               });
             });
           }
-        });
+        });*/
       });
     </script>
   </head>
   <body>
     <h3 class="panel-title">10HP Hiscores</h3>
     <table border=1 id="myTable"></table>
-    <input type="checkbox" id='fracshow' name="fracshow" /><label for="fracshow">Show decimals</label>
+    <!--<input type="checkbox" id='fracshow' name="fracshow" /><label for="fracshow">Show decimals</label>-->
   </body>
 </html>
