@@ -21,19 +21,24 @@
               decimal: ".",
               thousands: ","
             },
+            order: [[5, 'desc'],[6, 'desc'],[0,'asc']],
             columns: [
               { 
                 title: "Display Name",
-                className: "dt-body-left dt-head-center"
+                className: "dt-body-left dt-head-center",
+                orderable: false,
+                type: 'string'
               },
               { 
                 title: "Constitution Level",
                 className: "dt-body-right dt-head-center",
+                orderable: false,
                 type: 'num'
               },
               { 
                 title: "Constitution XP",
                 className: "dt-body-right dt-head-center",
+                orderable: false,
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
                 },
@@ -42,6 +47,8 @@
               { 
                 title: "Total Level",
                 className: "dt-body-right dt-head-center",
+                orderSequence: ['desc'],
+                orderData: [3,4,5,0],
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
                 },
@@ -51,6 +58,8 @@
               { 
                 title: "Virtual Total Level",
                 className: "dt-body-right dt-head-center",
+                orderSequence: ['desc'],
+                orderData: [4,5,0],
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
                 }
@@ -58,6 +67,8 @@
               { 
                 title: "Total XP",
                 className: "dt-body-right dt-head-center",
+                orderSequence: ['desc'],
+                orderData: [5,0],
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
                 },
@@ -66,6 +77,8 @@
               { 
                 title: "RuneScore",
                 className: "dt-body-right dt-head-center",
+                orderSequence: ['desc'],
+                orderData: [6,0],
                 render: function( data, type, row ) {
                   if (data!="") {
                     return parseInt(data).toLocaleString('en-US');
@@ -78,6 +91,8 @@
               { 
                 title: "Quest Points",
                 className: "dt-body-right dt-head-center",
+                orderSequence: ['desc'],
+                orderData: [7,0],
                 type: 'num-fmt'
               },
             ],
