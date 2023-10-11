@@ -16,12 +16,12 @@
           for(let i in entries){
             csv[i] = entries[i].split(',');
           }
-          table = $('#myTable').DataTable({
+          table = $('#hiscoreTable').DataTable({
             language: {
               decimal: ".",
               thousands: ","
             },
-            order: [[5,'desc']],
+            order: [[3,'desc'],[5,'desc']],
             columns: [
               { 
                 title: "Display Name",
@@ -33,12 +33,14 @@
                 title: "Constitution Level",
                 className: "dt-body-right dt-head-center",
                 orderable: false,
+                visible: false,
                 type: 'num'
               },
               { 
                 title: "Constitution XP",
                 className: "dt-body-right dt-head-center",
                 orderable: false,
+                visible: false,
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
                 },
@@ -60,6 +62,7 @@
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
                 orderData: [4,5,6,7],
+                visible: false,
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
                 }
@@ -99,6 +102,12 @@
             data: csv
           });
         }});
+        $('input[name="showConstitution"]').change(function () {
+          let column1 = table.column(1);
+          let column2 = table.column(2);
+          column1.visible(!column1.visible());
+          column2.visible(!column2.visible());
+        }
         /*
         $('input[name="fracshow"]').change(function () {
           if ($('input[name="fracshow"]').is(":checked")) {
@@ -125,7 +134,9 @@
   </head>
   <body>
     <h3 class="panel-title">10HP Hiscores</h3>
-    <table border=1 id="myTable"></table>
+    <input type="checkbox" id='useVirtual' name="useVirtual" /><label for="useVirtual">Toggle virtual levelling</label><br />
+    <input type="checkbox" id='showConstitution' name="showConstitution" /><label for="showConstitution">Show Constitution info</label><br />
+    <table border=1 id="hiscoreTable"></table>
     <!--<input type="checkbox" id='fracshow' name="fracshow" /><label for="fracshow">Show decimals</label>-->
     Requirements to be ranked:
     <ul>
