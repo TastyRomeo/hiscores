@@ -50,7 +50,7 @@
                 title: "Total Level",
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
-                orderData: [3,4,5,6,7],
+                orderData: [3,5,6,7],
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
                 },
@@ -108,6 +108,12 @@
           column1.visible(!column1.visible());
           column2.visible(!column2.visible());
         });
+        $('input[name="useVirtual"]').change(function () {
+          let column3 = table.column(3);
+          let column4 = table.column(4);
+          column3.visible(!column3.visible());
+          column4.visible(!column4.visible());
+        });
         /*
         $('input[name="fracshow"]').change(function () {
           if ($('input[name="fracshow"]').is(":checked")) {
@@ -143,11 +149,11 @@
       <li>Constitution is at most level 15 (i.e. can be reset by Nastroth)</li>
       <li>At least one combat skill is above level 10 (i.e. cannot be reset by Nastroth)</li>
       <li>All skills except Constitution must be ranked on the HiScores, or RuneMetrics must be public</li>
-      <li>Username is being tracked (easily adding usernames is WIP)</li>
+      <li>Username is being tracked </li>
     </ul>
-    Some other facts:
+    Some details:
     <ul>
-      <li>Constitution levels and xp are subtracted from other columns</li>
+      <li>Constitution levels and xp are subtracted (i.e. Constitution level is assumed to be 1, Constitution XP is assumed to be 0)</li>
       <li>RuneScore is only available when ranked on the HiScores</li>
       <li>Quest Points are only available when RuneMetrics is public</li>
     </ul>
