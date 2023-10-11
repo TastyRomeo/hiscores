@@ -145,9 +145,9 @@ for username in usernames:
     if QPoint == 0: QPoint = ""
 
     # Subtract Constitution level and xp
-    totLvl -= conLvl + 1
+    totLvl -= conLvl - 1
     totExp -= conExp
-    virLvl -= conLvl + 1
+    virLvl -= conLvl - 1
 
     print(f"| {username:<12s} | {conLvl:>2} | {conExp:>4} | {totLvl:>4} | {virLvl:>4} | {totExp:>10} | {RScore:>5} | {QPoint:>3} |")
     hsFile.write(username+","+str(conLvl)+","+str(conExp)+","+str(totLvl)+","+str(virLvl)+","+str(totExp)+","+str(RScore)+","+str(QPoint)+"\n")
