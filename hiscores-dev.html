@@ -5,8 +5,9 @@
     <style>
       #tableContainer {
         width: 1000px;
+        margin: auto;
       }
-      table.dataTable td th {
+      table.dataTable td,th {
         font-size: 12pt;
         font-family: Consolas;
       }
@@ -24,6 +25,7 @@
           }
           table = $('#hiscoreTable').DataTable({
             orderMulti: false,
+            autoWidt: false,
             language: {
               decimal: ".",
               thousands: ","
