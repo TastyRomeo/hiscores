@@ -17,6 +17,7 @@
             csv[i] = entries[i].split(',');
           }
           table = $('#hiscoreTable').DataTable({
+            orderMulti: false,
             language: {
               decimal: ".",
               thousands: ","
