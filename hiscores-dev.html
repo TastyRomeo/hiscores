@@ -3,7 +3,13 @@
     <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
     <style>
-      .hidden { display: none }
+      #tableContainer {
+        width: 1000px
+      }
+      table.dataTable td th {
+        font-size: 12pt;
+        font-family: 
+      }
     </style>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script>
@@ -59,7 +65,7 @@
                 
               },
               { 
-                title: "Virtual Total Level",
+                title: "Total Level",
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
                 orderData: [4,5,6,7],
@@ -147,7 +153,7 @@
     <h3 class="panel-title">10HP Hiscores</h3>
     <input type="checkbox" id='useVirtual' name="useVirtual" /><label for="useVirtual">Toggle virtual levelling</label><br />
     <input type="checkbox" id='showConstitution' name="showConstitution" /><label for="showConstitution">Show Constitution info</label><br />
-    <table border=1 id="hiscoreTable"></table>
+    <div id="tableContainer"><table border=1 id="hiscoreTable"></table></div>
     <!--<input type="checkbox" id='fracshow' name="fracshow" /><label for="fracshow">Show decimals</label>-->
     Requirements to be ranked:
     <ul>
