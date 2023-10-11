@@ -114,6 +114,10 @@
           let column4 = table.column(4);
           column3.visible(!column3.visible());
           column4.visible(!column4.visible());
+          orderNr = table.order()[0][0];
+          if ([3.4].includes(orderNr)) {
+            table.order([[3+(orderNr%2),"desc"]]).draw()
+          }
         });
         /*
         $('input[name="fracshow"]').change(function () {
