@@ -84,7 +84,7 @@
                 title: "Total Lvl", // 3. Total Lvl
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
-                orderData: [4,8],
+                orderData: [4,8,11,12],
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
                 },
@@ -106,7 +106,7 @@
                 title: "Total Lvl", // 5. Virtual Total Lvl
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
-                orderData: [6,8],
+                orderData: [6,8,11,12],
                 visible: false,
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
@@ -127,7 +127,7 @@
                 title: "Total XP", // 7. Total XP
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
-                orderData: [8],
+                orderData: [8,11,12],
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
                 },
@@ -197,55 +197,33 @@
         });
         $('input[name="useVirtual"]').change(function () {
           let column3 = table.column(3);
-          let column4 = table.column(4);
+          let column5 = table.column(5);
           column3.visible(!column3.visible());
-          column4.visible(!column4.visible());
+          column5.visible(!column5.visible());
           orderNr = table.order()[0][0];
-          if ([3,4].includes(orderNr)) {
-            table.order([[3+(orderNr%2),"desc"]]).draw()
+          if ([3,5].includes(orderNr)) {
+            table.order([[2+(orderNr%4),"desc"]]).draw()
           }
         });
-        /*
-        $('input[name="fracshow"]').change(function () {
-          if ($('input[name="fracshow"]').is(":checked")) {
-            table.rows().every(function(rowIndex){
-              table.columns().every(function(colIndex){
-                let cell = table.cell({row:rowIndex,column:colIndex})
-                let span = cell.nodes().toJQuery().find('.frac')
-                span.removeClass("hidden")
-              });
-            });
-          }
-          else {
-            table.rows().every(function(rowIndex){
-              table.columns().every(function(colIndex){
-                let cell = table.cell({row:rowIndex,column:colIndex})
-                let span = cell.nodes().toJQuery().find('.frac')
-                span.addClass("hidden")
-              });
-            });
-          }
-        });*/
       });
     </script>
   </head>
   <body>
     <div id="page">
       <h1>10HP Hiscores</h1>
-      <input type="checkbox" id='useVirtual' name="useVirtual" /><label for="useVirtual">Toggle virtual levelling</label><br />
-      <input type="checkbox" id='showConstitution' name="showConstitution" /><label for="showConstitution">Toggle Constitution info</label><br />
+      <input type="checkbox" id='useVirtual' name="useVirtual" /><label for="useVirtual">Toggle Virtual Levelling</label><br />
+      <input type="checkbox" id='showConstitution' name="showConstitution" /><label for="showConstitution">Toggle HP Lvl/XP</label><br />
       <div id="tableContainer"><table border=1 id="hiscoreTable"></table></div>
-      <!--<input type="checkbox" id='fracshow' name="fracshow" /><label for="fracshow">Show decimals</label>-->
       Requirements to be ranked:
       <ul>
-        <li>Constitution is at most level 15 (i.e. can be reset by Nastroth)</li>
+        <li>HP is at most level 15 (i.e. can be reset by Nastroth)</li>
         <li>At least one combat skill is above level 10 (i.e. cannot be reset by Nastroth)</li>
-        <li>All skills except Constitution must be ranked on the HiScores, or RuneMetrics must be public</li>
+        <li>All skills except HP must be ranked on the HiScores, or RuneMetrics must be public</li>
         <li>Username is being tracked </li>
       </ul>
       Some details:
       <ul>
-        <li>Constitution levels and xp are subtracted (i.e. Constitution level is assumed to be 1, Constitution XP is assumed to be 0)</li>
+        <li>Order is determined by subtracting HP levels and xp</li>
         <li>RuneScore is only available when ranked on the HiScores</li>
         <li>Quest Points are only available when RuneMetrics is public</li>
       </ul>
