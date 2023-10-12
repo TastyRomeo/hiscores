@@ -6,11 +6,18 @@
     <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
     <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
       #page {
         background-color: #34353f;
         width: 1100px;
         margin: 0 auto 0 auto;
-        min-height: 100%;
+        min-height: calc(100% - 10px);
         padding: 5px 15px 5px 15px;
       }
       #tableContainer {
