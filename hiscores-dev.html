@@ -1,8 +1,14 @@
-<html>
+<html class="dark">
   <head>
     <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
     <style>
+      #page {
+        background-color: #34353f;
+        width: 1100px;
+        margin: auto;
+        min-height: 100%;
+      }
       #tableContainer {
         width: 1000px;
         margin: auto;
@@ -10,6 +16,10 @@
       table.dataTable td,th {
         font-size: 12pt;
         font-family: Courier New;
+      }
+      body {
+        background-color: #23242e;
+        color: #f7f6f1;
       }
     </style>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
@@ -154,23 +164,25 @@
     </script>
   </head>
   <body>
-    <h3 class="panel-title">10HP Hiscores</h3>
-    <input type="checkbox" id='useVirtual' name="useVirtual" /><label for="useVirtual">Toggle virtual levelling</label><br />
-    <input type="checkbox" id='showConstitution' name="showConstitution" /><label for="showConstitution">Toggle Constitution info</label><br />
-    <div id="tableContainer"><table border=1 id="hiscoreTable"></table></div>
-    <!--<input type="checkbox" id='fracshow' name="fracshow" /><label for="fracshow">Show decimals</label>-->
-    Requirements to be ranked:
-    <ul>
-      <li>Constitution is at most level 15 (i.e. can be reset by Nastroth)</li>
-      <li>At least one combat skill is above level 10 (i.e. cannot be reset by Nastroth)</li>
-      <li>All skills except Constitution must be ranked on the HiScores, or RuneMetrics must be public</li>
-      <li>Username is being tracked </li>
-    </ul>
-    Some details:
-    <ul>
-      <li>Constitution levels and xp are subtracted (i.e. Constitution level is assumed to be 1, Constitution XP is assumed to be 0)</li>
-      <li>RuneScore is only available when ranked on the HiScores</li>
-      <li>Quest Points are only available when RuneMetrics is public</li>
-    </ul>
+    <div id="page">
+      <h2>10HP Hiscores</h2>
+      <input type="checkbox" id='useVirtual' name="useVirtual" /><label for="useVirtual">Toggle virtual levelling</label><br />
+      <input type="checkbox" id='showConstitution' name="showConstitution" /><label for="showConstitution">Toggle Constitution info</label><br />
+      <div id="tableContainer"><table border=1 id="hiscoreTable"></table></div>
+      <!--<input type="checkbox" id='fracshow' name="fracshow" /><label for="fracshow">Show decimals</label>-->
+      Requirements to be ranked:
+      <ul>
+        <li>Constitution is at most level 15 (i.e. can be reset by Nastroth)</li>
+        <li>At least one combat skill is above level 10 (i.e. cannot be reset by Nastroth)</li>
+        <li>All skills except Constitution must be ranked on the HiScores, or RuneMetrics must be public</li>
+        <li>Username is being tracked </li>
+      </ul>
+      Some details:
+      <ul>
+        <li>Constitution levels and xp are subtracted (i.e. Constitution level is assumed to be 1, Constitution XP is assumed to be 0)</li>
+        <li>RuneScore is only available when ranked on the HiScores</li>
+        <li>Quest Points are only available when RuneMetrics is public</li>
+      </ul>
+    </div>
   </body>
 </html>
