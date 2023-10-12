@@ -16,8 +16,9 @@ def getHiScores(username: str):
     
 def getRuneMetrics(url: str):
     for _ in range(5):
-        res = download(url)
-        try: return res.json()
+        try:
+            res = download(url)
+            return res.json()
         except: pass
     return None
 
