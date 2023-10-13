@@ -90,7 +90,7 @@
                 title: "Total Lvl", // 3. Total Lvl
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
-                orderData: [4,8,12,13],
+                orderData: [4,8,12],
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
                 },
@@ -112,7 +112,7 @@
                 title: "Total Lvl", // 5. Virtual Total Lvl
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
-                orderData: [6,8,12,13],
+                orderData: [6,8,12],
                 visible: false,
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
@@ -133,7 +133,7 @@
                 title: "Total XP", // 7. Total XP
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
-                orderData: [8,12,13],
+                orderData: [8,12],
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
                 },
@@ -184,7 +184,7 @@
                 title: "RuneScore", // 12. RuneScore
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
-                orderData: [12,8,13],
+                orderData: [12,8],
                 render: function( data, type, row ) {
                   if (data!="") {
                     return parseInt(data).toLocaleString('en-US');
@@ -193,14 +193,7 @@
                   }
                 },
                 type: 'num-fmt'
-              },
-              { 
-                title: "Quest Pts", // 13. Quest Points
-                className: "dt-body-right dt-head-center",
-                orderSequence: ['desc'],
-                orderData: [13,8,12],
-                type: 'num-fmt'
-              },
+              }
             ],
             data: csv
           });
@@ -240,8 +233,7 @@
       Some details:
       <ul>
         <li>Order is determined by subtracting HP levels and XP;</li>
-        <li>RuneScore is only available when ranked on the HiScores;</li>
-        <li>Quest Points are only available when RuneMetrics is public.</li>
+        <li>RuneScore is only available when ranked on the HiScores.</li>
       </ul>
     </div>
   </body>
