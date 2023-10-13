@@ -155,9 +155,7 @@ for username in usernames:
     usernamesString += f"{username}\n"
     hiscoresString += f"{username},{conLvl},{conExp},{totLvl},{totLvlAdj},{virLvl},{virLvlAdj},{totExp},{totExpAdj},{cmbLvl},{cmbLvlAdj:>4.3f},{cmbExpAdj},{RScore},{QPoint}\n"
 
-unFile = open("data/usernames.csv", "w+")
-hsFile.write(usernamesString)
-unFile.close()
-hsFile = open("data/hiscores.csv", "w+")
-hsFile.write(hiscoresString)
-hsFile.close()
+with open("data/usernames.csv", "w+") as usernamesFile:
+    usernamesFile.write(usernamesString)
+with open("data/hiscores.csv", "w+") as hiscoresFile:
+    hiscoresFile.write(hiscoresString)
