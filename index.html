@@ -242,7 +242,7 @@
             column6.visible(!column6.visible());
             orderNr = table.order()[0][0];
             if ([5,6].includes(orderNr)) {
-              table.order([[5==OrderNr ? 6 : 5,"desc"]]).draw()
+              table.order([[5==orderNr ? 6 : 5,"desc"]]).draw()
             }
           }
           let column7 = table.column(7);
@@ -254,10 +254,10 @@
           column9.visible(!column9.visible());
           column10.visible(!column10.visible());
           if ([7,8].includes(orderNr)) {
-            table.order([[7==OrderNr ? 8 : 7,"desc"]]).draw()
+            table.order([[7==orderNr ? 8 : 7,"desc"]]).draw()
           }
           if ([9,10].includes(orderNr)) {
-            table.order([[9==OrderNr ? 10 : 9,"desc"]]).draw()
+            table.order([[9==orderNr ? 10 : 9,"desc"]]).draw()
           }
         });
       });
