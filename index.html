@@ -98,7 +98,7 @@
                 
               },
               { 
-                title: "Total Lvl (adjusted)", // 4. Total Lvl - HP Lvl
+                title: "Total Lvl", // 4. Total Lvl - HP Lvl
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
                 visible: false,
@@ -120,7 +120,7 @@
                 type: 'num-fmt'
               },
               { 
-                title: "Total Lvl (adjusted)", // 6. Virtual Total Lvl - HP Lvl
+                title: "Total Lvl", // 6. Virtual Total Lvl - HP Lvl
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
                 visible: false,
@@ -141,7 +141,7 @@
                 type: 'num-fmt'
               },
               { 
-                title: "Total XP (adjusted)", // 8. Total XP - HP XP
+                title: "Total XP", // 8. Total XP - HP XP
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
                 visible: false,
@@ -161,7 +161,7 @@
                 type: 'num-fmt'
               },
               { 
-                title: "Combat Lvl (adjusted)", // 10. Combat Lvl adjusted for HP
+                title: "Combat Lvl", // 10. Combat Lvl adjusted for HP
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
                 visible: false,
@@ -171,7 +171,7 @@
                 type: 'num-fmt'
               },
               { 
-                title: "Combat XP (adjusted)", // 11. Combat XP adjusted for HP
+                title: "Combat XP", // 11. Combat XP adjusted for HP
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
                 visible: false,
@@ -206,12 +206,58 @@
         });
         $('input[name="useVirtual"]').change(function () {
           let column3 = table.column(3);
+          let column4 = table.column(4);
           let column5 = table.column(5);
-          column3.visible(!column3.visible());
-          column5.visible(!column5.visible());
-          orderNr = table.order()[0][0];
-          if ([3,5].includes(orderNr)) {
-            table.order([[2+(orderNr%4),"desc"]]).draw()
+          let column6 = table.column(6);
+          if (!$('input[name="useAdjusted"]').is(":checked")) {
+            column3.visible(!column3.visible());
+            column5.visible(!column5.visible());
+            orderNr = table.order()[0][0];
+            if ([3,5].includes(orderNr)) {
+              table.order([[3==orderNr ? 5 : 3,"desc"]]).draw()
+            }
+          } else {
+            column4.visible(!column4.visible());
+            column6.visible(!column6.visible());
+            orderNr = table.order()[0][0];
+            if ([4,6].includes(orderNr)) {
+              table.order([[4==OrderNr ? 6 : 4,"desc"]]).draw()
+            }
+          }
+        });
+        $('input[name="useAdjusted"]').change(function () {
+          let column3 = table.column(3);
+          let column4 = table.column(4);
+          let column5 = table.column(5);
+          let column6 = table.column(6);
+          if (!$('input[name="useVirtual"]').is(":checked")) {
+            column3.visible(!column3.visible());
+            column4.visible(!column4.visible());
+            orderNr = table.order()[0][0];
+            if ([3,5].includes(orderNr)) {
+              table.order([[3==orderNr ? 4 : 3,"desc"]]).draw()
+            }
+          } else {
+            column5.visible(!column5.visible());
+            column6.visible(!column6.visible());
+            orderNr = table.order()[0][0];
+            if ([5,6].includes(orderNr)) {
+              table.order([[5==OrderNr ? 6 : 5,"desc"]]).draw()
+            }
+          }
+          let column7 = table.column(7);
+          let column8 = table.column(8);
+          let column9 = table.column(9);
+          let column10 = table.column(10);
+          column7.visible(!column7.visible());
+          column8.visible(!column8.visible());
+          column9.visible(!column9.visible());
+          column10.visible(!column10.visible());
+          if ([7,8].includes(orderNr)) {
+            table.order([[7==OrderNr ? 8 : 7,"desc"]]).draw()
+          }
+          if ([9,10].includes(orderNr)) {
+            table.order([[9==OrderNr ? 10 : 9,"desc"]]).draw()
           }
         });
       });
@@ -221,7 +267,8 @@
     <div id="page">
       <h1>10HP Hiscores</h1>
       <input type="checkbox" id='useVirtual' name="useVirtual" /><label for="useVirtual">Toggle Virtual Levelling</label><br />
-      <input type="checkbox" id='showConstitution' name="showConstitution" /><label for="showConstitution">Toggle HP Lvl/XP</label><br />
+      <input type="checkbox" id='showConstitution' name="showConstitution" /><label for="showConstitution">Toggle HP Level/XP</label><br />
+      <input type="checkbox" id='useAdjusted' name="useAdjusted" /><label for="useAdjusted">Toggle Adjusted Levels/XP</label><br />
       <div id="tableContainer"><table border=1 id="hiscoreTable"></table></div>
       Requirements to be ranked:
       <ul>
