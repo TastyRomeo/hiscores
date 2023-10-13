@@ -220,7 +220,7 @@
             column6.visible(!column6.visible());
             orderNr = table.order()[0][0];
             if ([4,6].includes(orderNr)) {
-              table.order([[4==OrderNr ? 6 : 4,"desc"]]).draw()
+              table.order([[4==orderNr ? 6 : 4,"desc"]]).draw()
             }
           }
         });
