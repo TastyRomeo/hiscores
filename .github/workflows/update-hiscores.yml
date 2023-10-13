@@ -2,7 +2,7 @@ name: Update HiScores
 on:
   workflow_dispatch:
   schedule:
-    - cron: '44 */4 * * *'
+    - cron: '40 */2 * * *'
  
 jobs:
   hiscores:
