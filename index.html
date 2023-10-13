@@ -101,6 +101,7 @@
                 title: "Total Lvl", // 4. Total Lvl - HP Lvl
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
+                orderData: [4,8,12],
                 visible: false,
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
@@ -123,6 +124,7 @@
                 title: "Total Lvl", // 6. Virtual Total Lvl - HP Lvl
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
+                orderData: [6,8,12],
                 visible: false,
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
@@ -143,6 +145,7 @@
                 title: "Total XP", // 8. Total XP - HP XP
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
+                orderData: [8,12],
                 visible: false,
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
@@ -163,6 +166,7 @@
                 title: "Combat Lvl", // 10. Combat Lvl adjusted for HP
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
+                orderData: [10,11],
                 visible: false,
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
