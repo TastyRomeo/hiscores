@@ -101,31 +101,31 @@ for username in usernames:
     
     finally:
         attLvl = lvlList[0]
-        #attExp = expList[0]
+        attExp = expList[0]
         
         strLvl = lvlList[2]
-        #strExp = expList[2]
+        strExp = expList[2]
         
         mgcLvl = lvlList[6]
-        #mgcExp = expList[6]
+        mgcExp = expList[6]
         
         rngLvl = lvlList[4]
-        #rngExp = expList[4]
+        rngExp = expList[4]
         
         necLvl = lvlList[28]
-        #necExp = expList[28]
+        necExp = expList[28]
         
         defLvl = lvlList[1]
-        #defExp = expList[1]
+        defExp = expList[1]
         
         conLvl = lvlList[3]
         conExp = expList[3]
         
         pryLvl = lvlList[5]
-        #pryExp = expList[5]
+        pryExp = expList[5]
         
         sumLvl = lvlList[23]
-        #sumExp = expList[23]
+        sumExp = expList[23]
 
     # Filter out mains and skillers
     if conLvl > 15:
