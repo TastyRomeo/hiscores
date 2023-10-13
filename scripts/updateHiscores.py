@@ -55,8 +55,8 @@ def calculateEliteLevel(xp: int) -> int:
 
 usernames = getUsernamesFromCsv()
 
-hsFile = open("data/hiscores.csv", "w+")
-unFile = open("data/usernames.csv", "w+")
+hiscoresString = ""
+usernamesString = ""
 for username in usernames:
     RScore = ""
     try:
@@ -85,7 +85,7 @@ for username in usernames:
         RMData = getRuneMetrics("https://apps.runescape.com/runemetrics/profile/profile?user=" + username.replace(" ","%20") + "&activities=0")
         if RMData == None:
             print(f"{username:<12s}: could not load RuneMetrics")
-            unFile.write(username+"\n")
+            usernamesString += f"{username}\n"
             continue;
         if "error" in RMData:
             print(f"{username:<12s}: could not confirm hp level")
@@ -152,7 +152,12 @@ for username in usernames:
     virLvlAdj = virLvl - conLvl
 
     print(f"| {username:<12s} | {conLvl:>2} | {conExp:>4} | {totLvl:>4} | {virLvl:>4} | {totExp:>10} | {cmbLvl:>3} | {RScore:>5} | {QPoint:>3} | ")
-    hsFile.write(f"{username},{conLvl},{conExp},{totLvl},{totLvlAdj},{virLvl},{virLvlAdj},{totExp},{totExpAdj},{cmbLvl},{cmbLvlAdj:>4.3f},{cmbExpAdj},{RScore},{QPoint}\n")
-    unFile.write(username+"\n")
-hsFile.close()
+    usernamesString += f"{username}\n"
+    hiscoresString += f"{username},{conLvl},{conExp},{totLvl},{totLvlAdj},{virLvl},{virLvlAdj},{totExp},{totExpAdj},{cmbLvl},{cmbLvlAdj:>4.3f},{cmbExpAdj},{RScore},{QPoint}\n"
+
+unFile = open("data/usernames.csv", "w+")
+hsFile.write(usernamesString)
 unFile.close()
+hsFile = open("data/hiscores.csv", "w+")
+hsFile.write(hiscoresString)
+hsFile.close()
