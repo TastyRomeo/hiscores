@@ -138,7 +138,6 @@ for username in usernames:
     virLvl = sum([(calculateLevel(expList[i]) if i != 26 else calculateEliteLevel(expList[i])) for i in range(29)])
     
     cmbLvl = math.floor(combatLevel(attLvl, strLvl, mgcLvl, rngLvl, necLvl, defLvl, conLvl, pryLvl, sumLvl))
-    #cmbExp = attExp + strExp + mgcExp + rngExp + necExp + defExp + conExp + pryExp + sumExp
 
     QPdata = getRuneMetrics("https://apps.runescape.com/runemetrics/quests?user=" + username.replace(" ","%20"))
 
@@ -147,12 +146,13 @@ for username in usernames:
 
     # Subtract Constitution level and xp
     cmbLvlAdj = combatLevel(attLvl, strLvl,mgcLvl,rngLvl,necLvl,defLvl, 0, pryLvl, sumLvl)
+    cmbExpAdj = attExp + strExp + mgcExp + rngExp + necExp + defExp + pryExp + sumExp
     totLvlAdj = totLvl - conLvl
     totExpAdj = totExp - conExp
     virLvlAdj = virLvl - conLvl
 
     print(f"| {username:<12s} | {conLvl:>2} | {conExp:>4} | {totLvl:>4} | {virLvl:>4} | {totExp:>10} | {cmbLvl:>3} | {RScore:>5} | {QPoint:>3} | ")
-    hsFile.write(username+","+str(conLvl)+","+str(conExp)+","+str(totLvl)+","+str(totLvlAdj)+","+str(virLvl)+","+str(virLvlAdj)+","+str(totExp)+","+str(totExpAdj)+","+str(cmbLvl)+","+f"{cmbLvlAdj:>4.3f},"+str(RScore)+","+str(QPoint)+"\n")
+    hsFile.write(f"{username},{conLvl},{conExp},{totLvl},{totLvlAdj},{virLvl},{virLvlAdj},{totExp},{totExpAdj},{cmbLvl},{cmbLvlAdj:>4.3f},{cmbExpAdj},{RScore},{QPoint}\n")
     unFile.write(username+"\n")
 hsFile.close()
 unFile.close()
