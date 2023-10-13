@@ -139,11 +139,6 @@ for username in usernames:
     
     cmbLvl = math.floor(combatLevel(attLvl, strLvl, mgcLvl, rngLvl, necLvl, defLvl, conLvl, pryLvl, sumLvl))
 
-    QPdata = getRuneMetrics("https://apps.runescape.com/runemetrics/quests?user=" + username.replace(" ","%20"))
-
-    QPoint = sum([_["questPoints"] for _ in QPdata["quests"] if _["status"] == "COMPLETED"])
-    if QPoint == 0: QPoint = ""
-
     # Subtract Constitution level and xp
     cmbLvlAdj = combatLevel(attLvl, strLvl,mgcLvl,rngLvl,necLvl,defLvl, 0, pryLvl, sumLvl)
     cmbExpAdj = attExp + strExp + mgcExp + rngExp + necExp + defExp + pryExp + sumExp
@@ -151,9 +146,9 @@ for username in usernames:
     totExpAdj = totExp - conExp
     virLvlAdj = virLvl - conLvl
 
-    print(f"| {username:<12s} | {conLvl:>2} | {conExp:>4} | {totLvl:>4} | {virLvl:>4} | {totExp:>10} | {cmbLvl:>3} | {RScore:>5} | {QPoint:>3} | ")
+    print(f"| {username:<12s} | {conLvl:>2} | {conExp:>4} | {totLvl:>4} | {virLvl:>4} | {totExp:>10} | {cmbLvl:>3} | {RScore:>5} |")
     usernamesString += f"{username}\n"
-    hiscoresString += f"{username},{conLvl},{conExp},{totLvl},{totLvlAdj},{virLvl},{virLvlAdj},{totExp},{totExpAdj},{cmbLvl},{cmbLvlAdj:>4.3f},{cmbExpAdj},{RScore},{QPoint}\n"
+    hiscoresString += f"{username},{conLvl},{conExp},{totLvl},{totLvlAdj},{virLvl},{virLvlAdj},{totExp},{totExpAdj},{cmbLvl},{cmbLvlAdj:>4.3f},{cmbExpAdj},{RScore}\n"
 
 with open("data/usernames.csv", "w+") as usernamesFile:
     usernamesFile.write(usernamesString)
