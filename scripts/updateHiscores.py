@@ -8,19 +8,25 @@ def download(url: str):
         return response
     raise Exception("404")
 
+# Get HiScores data (in array form)
 def getHiScores(username: str):
     url = "https://secure.runescape.com/m=hiscore/index_lite.ws?player=" + username.replace(" ","%20")
     res = download(url).text
     rows = res.split("\n")[:-1]
-    return [ [int(x) for x in row.split(",")[1:]] for row in rows ]
-    
-def getRuneMetrics(url: str):
+    return [ [int(x) for x in row.split(",")] for row in rows ]
+
+# Get RuneMetrics data (in dict form)
+def getRuneMetrics(username: str):
+    global RMFails
+    url = "https://apps.runescape.com/runemetrics/profile/profile?user=" + username.replace(" ","%20") + "&activities=0"
     for _ in range(5):
         try:
             res = download(url)
             return res.json()
-        except: pass
-    return None
+        except: 
+            RMFails += 1
+            pass
+    return {}
 
 # Takes usernames from csv
 def getUsernamesFromCsv() -> list[str]:
@@ -57,20 +63,25 @@ usernames = getUsernamesFromCsv()
 
 hiscoresString = ""
 usernamesString = ""
+RMFails = 0
+print(f"╔══════════════╦════╦══════╦══════╦══════╦════════════╦═════╦═══════╗")
+print(f"║ DISPLAY NAME ║ HP ║ HPXP ║ TOTL ║ VIRT ║  TOTAL XP  ║ CMB ║ SCORE ║")
+print(f"╠══════════════╬════╬══════╬══════╬══════╬════════════╬═════╬═══════╣")
 for username in usernames:
     RScore = ""
     try:
         # Try using HiScores
         HSData = getHiScores(username)
         
-        RScore = HSData[54][0]
-        if RScore == -1: RScore = ""
+        RScore = HSData[54][1]
+        # Also check rank to prevent bug that incorrectly gives RuneScore
+        if RScore == -1 or HSData[54][0] == -1: RScore = ""
         
-        totLvl = HSData[0][0]
-        totExp = HSData[0][1]
+        totLvl = HSData[0][1]
+        totExp = HSData[0][2]
         
-        lvlList = [HSData[_][0] for _ in range(1,30)]
-        expList = [HSData[_][1] for _ in range(1,30)]
+        lvlList = [HSData[_][1] for _ in range(1,30)]
+        expList = [HSData[_][2] for _ in range(1,30)]
         
         if expList.count(-1) > 1:
             raise Exception("Too many unranked skills")
@@ -82,13 +93,11 @@ for username in usernames:
     
     except:
         # Try using RuneMetrics
-        RMData = getRuneMetrics("https://apps.runescape.com/runemetrics/profile/profile?user=" + username.replace(" ","%20") + "&activities=0")
-        if RMData == None:
-            print(f"{username:<12s}: could not load RuneMetrics")
-            usernamesString += f"{username}\n"
+        RMData = getRuneMetrics(username)
+        if not RMData:
+            usernamesString += f"{username}\n" # Keep in list for future retry
             continue;
         if "error" in RMData:
-            print(f"{username:<12s}: could not confirm hp level")
             continue;
         
         totLvl = RMData["totalskill"]
@@ -128,11 +137,7 @@ for username in usernames:
         sumExp = expList[23]
 
     # Filter out mains and skillers
-    if conLvl > 15:
-        print(f"{username:<12s}: hp level is "+str(conLvl))
-        continue
-    if max(attLvl, strLvl, mgcLvl, rngLvl, necLvl, defLvl, pryLvl, sumLvl) < 11:
-        print(f"{username:<12s}: is a skiller")
+    if conLvl > 15 or max(attLvl, strLvl, mgcLvl, rngLvl, necLvl, defLvl, pryLvl, sumLvl) < 11:
         continue;
             
     virLvl = sum([(calculateLevel(expList[i]) if i != 26 else calculateEliteLevel(expList[i])) for i in range(29)])
@@ -146,10 +151,11 @@ for username in usernames:
     totExpAdj = totExp - conExp
     virLvlAdj = virLvl - conLvl
 
-    print(f"| {username:<12s} | {conLvl:>2} | {conExp:>4} | {totLvl:>4} | {virLvl:>4} | {totExp:>10} | {cmbLvl:>3} | {RScore:>5} |")
+    print(f"║ {username:<12s} ║ {conLvl:>2} ║ {conExp:>4} ║ {totLvl:>4} ║ {virLvl:>4} ║ {totExp:>10} ║ {cmbLvl:>3} ║ {RScore:>5} ║")
     usernamesString += f"{username}\n"
     hiscoresString += f"{username},{conLvl},{conExp},{totLvl},{totLvlAdj},{virLvl},{virLvlAdj},{totExp},{totExpAdj},{cmbLvl},{cmbLvlAdj:>4.3f},{cmbExpAdj},{RScore}\n"
 
+print(f"╚══════════════╩════╩══════╩══════╩══════╩════════════╩═════╩═══════╝\n\nRuneMetrics fails: {RMFails}")
 with open("data/usernames.csv", "w+") as usernamesFile:
     usernamesFile.write(usernamesString)
 with open("data/hiscores.csv", "w+") as hiscoresFile:
