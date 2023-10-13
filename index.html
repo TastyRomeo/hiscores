@@ -90,7 +90,7 @@
                 title: "Total Lvl", // 3. Total Lvl
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
-                orderData: [4,8,11,12],
+                orderData: [4,8,12,13],
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
                 },
@@ -112,7 +112,7 @@
                 title: "Total Lvl", // 5. Virtual Total Lvl
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
-                orderData: [6,8,11,12],
+                orderData: [6,8,12,13],
                 visible: false,
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
@@ -133,7 +133,7 @@
                 title: "Total XP", // 7. Total XP
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
-                orderData: [8,11,12],
+                orderData: [8,12,13],
                 render: function( data, type, row ) {
                   return parseInt(data).toLocaleString('en-US');
                 },
@@ -171,10 +171,20 @@
                 type: 'num-fmt'
               },
               { 
-                title: "RuneScore", // 11. RuneScore
+                title: "Combat XP (adjusted)", // 11. Combat XP adjusted for HP
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
-                orderData: [11,8,12],
+                visible: false,
+                render: function( data, type, row ) {
+                  return parseInt(data).toLocaleString('en-US');
+                },
+                type: 'num-fmt'
+              },
+              { 
+                title: "RuneScore", // 12. RuneScore
+                className: "dt-body-right dt-head-center",
+                orderSequence: ['desc'],
+                orderData: [12,8,13],
                 render: function( data, type, row ) {
                   if (data!="") {
                     return parseInt(data).toLocaleString('en-US');
@@ -185,10 +195,10 @@
                 type: 'num-fmt'
               },
               { 
-                title: "Quest Pts", // 12. Quest Points
+                title: "Quest Pts", // 13. Quest Points
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc'],
-                orderData: [12,8,11],
+                orderData: [13,8,12],
                 type: 'num-fmt'
               },
             ],
