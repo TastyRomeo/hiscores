@@ -145,11 +145,11 @@ for username in usernames:
     cmbLvl = math.floor(combatLevel(attLvl, strLvl, mgcLvl, rngLvl, necLvl, defLvl, conLvl, pryLvl, sumLvl))
 
     # Subtract Constitution level and xp
-    cmbLvlAdj = combatLevel(attLvl, strLvl,mgcLvl,rngLvl,necLvl,defLvl, 0, pryLvl, sumLvl)
+    cmbLvlAdj = combatLevel(attLvl, strLvl,mgcLvl,rngLvl,necLvl,defLvl, 1, pryLvl, sumLvl)
     cmbExpAdj = attExp + strExp + mgcExp + rngExp + necExp + defExp + pryExp + sumExp
-    totLvlAdj = totLvl - conLvl
+    totLvlAdj = totLvl - conLvl + 1
     totExpAdj = totExp - conExp
-    virLvlAdj = virLvl - conLvl
+    virLvlAdj = virLvl - conLvl + 1
 
     print(f"║ {username:<12s} ║ {conLvl:>2} ║ {conExp:>4} ║ {totLvl:>4} ║ {virLvl:>4} ║ {totExp:>10} ║ {cmbLvl:>3} ║ {RScore:>5} ║")
     usernamesString += f"{username}\n"
