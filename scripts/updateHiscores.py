@@ -19,7 +19,7 @@ def getHiScores(username: str):
 def getRuneMetrics(username: str):
     global RMFails
     url = "https://apps.runescape.com/runemetrics/profile/profile?user=" + username.replace(" ","%20") + "&activities=0"
-    for _ in range(5):
+    for _ in range(10):
         try:
             res = download(url)
             return res.json()
