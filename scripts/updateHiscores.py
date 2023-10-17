@@ -24,7 +24,7 @@ def getRuneMetrics(username: str):
             res = download(url)
             return res.json()
         except: 
-            RMFails += 1
+            RMFails += [username]
             pass
     return {}
 
