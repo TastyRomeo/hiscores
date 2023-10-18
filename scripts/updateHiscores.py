@@ -63,7 +63,7 @@ usernames = getUsernamesFromCsv()
 
 hiscoresString = ""
 usernamesString = ""
-RMFails = 0
+RMFails = []
 print(f"╔══════════════╦════╦══════╦══════╦══════╦════════════╦═════╦═══════╗")
 print(f"║ DISPLAY NAME ║ HP ║ HPXP ║ TOTL ║ VIRT ║  TOTAL XP  ║ CMB ║ SCORE ║")
 print(f"╠══════════════╬════╬══════╬══════╬══════╬════════════╬═════╬═══════╣")
