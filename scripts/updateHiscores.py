@@ -10,10 +10,17 @@ def download(url: str):
 
 # Get HiScores data (in array form)
 def getHiScores(username: str):
+    global HSFails
     url = "https://secure.runescape.com/m=hiscore/index_lite.ws?player=" + username.replace(" ","%20")
-    res = download(url).text
-    rows = res.split("\n")[:-1]
-    return [ [int(x) for x in row.split(",")] for row in rows ]
+    for _ in range(10):
+        try:
+            res = download(url).text
+            rows = res.split("\n")[:-1]
+            return [ [int(x) for x in row.split(",")] for row in rows ]
+        except:
+            HSFails += [username]
+            pass
+    return []
 
 # Get RuneMetrics data (in dict form)
 def getRuneMetrics(username: str):
@@ -63,7 +70,10 @@ usernames = getUsernamesFromCsv()
 
 hiscoresString = ""
 usernamesString = ""
+HSFails = []
 RMFails = []
+HPTooHigh = []
+RSNChange = []
 print(f"╔══════════════╦════╦══════╦══════╦══════╦════════════╦═════╦═══════╗")
 print(f"║ DISPLAY NAME ║ HP ║ HPXP ║ TOTL ║ VIRT ║  TOTAL XP  ║ CMB ║ SCORE ║")
 print(f"╠══════════════╬════╬══════╬══════╬══════╬════════════╬═════╬═══════╣")
@@ -72,6 +82,8 @@ for username in usernames:
     try:
         # Try using HiScores
         HSData = getHiScores(username)
+        if not HSData:
+            raise Exception("Could not load HiScores")
         
         RScore = HSData[54][1]
         # Also check rank to prevent bug that incorrectly gives RuneScore
@@ -95,10 +107,17 @@ for username in usernames:
         # Try using RuneMetrics
         RMData = getRuneMetrics(username)
         if not RMData:
-            usernamesString += f"{username}\n" # Keep in list for future retry
+            # Could not load RuneMetrics, keep in list for retry on next update
+            usernamesString += f"{username}\n"
             continue;
         if "error" in RMData:
-            continue;
+            if RMData["error"] == "NO_PROFILE":
+                # Username changed, remove from list
+                RSNChange += [username]
+            elif RMData["error"] == "PROFILE_PRIVATE":
+                # RuneMetrics turned private, keep in list for retry on next update
+                usernamesString += f"{username}\n"
+            continue
         
         totLvl = RMData["totalskill"]
         totExp = RMData["totalxp"]
@@ -138,6 +157,7 @@ for username in usernames:
 
     # Filter out mains and skillers
     if conLvl > 15 or max(attLvl, strLvl, mgcLvl, rngLvl, necLvl, defLvl, pryLvl, sumLvl) < 11:
+        HPTooHigh += [username]
         continue;
             
     virLvl = sum([(calculateLevel(expList[i]) if i != 26 else calculateEliteLevel(expList[i])) for i in range(29)])
@@ -155,7 +175,7 @@ for username in usernames:
     usernamesString += f"{username}\n"
     hiscoresString += f"{username},{conLvl},{conExp},{totLvl},{totLvlAdj},{virLvl},{virLvlAdj},{totExp},{totExpAdj},{cmbLvl},{cmbLvlAdj:>4.3f},{cmbExpAdj},{RScore}\n"
 
-print(f"╚══════════════╩════╩══════╩══════╩══════╩════════════╩═════╩═══════╝\n\nRuneMetrics fails: {RMFails}")
+print(f"╚══════════════╩════╩══════╩══════╩══════╩════════════╩═════╩═══════╝\n\nHiScore fails: {HSFails}\n\nRuneMetrics fails: {RMFails}\n\nAccount Fuckups: {HPTooHigh}\n\nRSN Changes: {RSNChange}")
 with open("data/usernames.csv", "w+") as usernamesFile:
     usernamesFile.write(usernamesString)
 with open("data/hiscores.csv", "w+") as hiscoresFile:
