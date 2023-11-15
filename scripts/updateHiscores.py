@@ -74,6 +74,7 @@ HSFails = []
 RMFails = []
 HPTooHigh = []
 RSNChange = []
+IsSkiller = []
 print(f"╔══════════════╦════╦══════╦══════╦══════╦════════════╦═════╦═══════╗")
 print(f"║ DISPLAY NAME ║ HP ║ HPXP ║ TOTL ║ VIRT ║  TOTAL XP  ║ CMB ║ SCORE ║")
 print(f"╠══════════════╬════╬══════╬══════╬══════╬════════════╬═════╬═══════╣")
@@ -156,8 +157,11 @@ for username in usernames:
         sumExp = expList[23]
 
     # Filter out mains and skillers
-    if conLvl > 15 or max(attLvl, strLvl, mgcLvl, rngLvl, necLvl, defLvl, pryLvl, sumLvl) < 11:
+    if conLvl > 15:
         HPTooHigh += [username]
+        continue;
+    elif max(attLvl, strLvl, mgcLvl, rngLvl, necLvl, defLvl, pryLvl, sumLvl) < 11:
+        IsSkiller += [username]
         continue;
             
     virLvl = sum([(calculateLevel(expList[i]) if i != 26 else calculateEliteLevel(expList[i])) for i in range(29)])
@@ -165,7 +169,7 @@ for username in usernames:
     cmbLvl = math.floor(combatLevel(attLvl, strLvl, mgcLvl, rngLvl, necLvl, defLvl, conLvl, pryLvl, sumLvl))
 
     # Subtract Constitution level and xp
-    cmbLvlAdj = combatLevel(attLvl, strLvl,mgcLvl,rngLvl,necLvl,defLvl, 1, pryLvl, sumLvl)
+    cmbLvlAdj = combatLevel(attLvl, strLvl, mgcLvl, rngLvl, necLvl, defLvl, 1, pryLvl, sumLvl)
     cmbExpAdj = attExp + strExp + mgcExp + rngExp + necExp + defExp + pryExp + sumExp
     totLvlAdj = totLvl - conLvl + 1
     totExpAdj = totExp - conExp
@@ -175,7 +179,7 @@ for username in usernames:
     usernamesString += f"{username}\n"
     hiscoresString += f"{username},{conLvl},{conExp},{totLvl},{totLvlAdj},{virLvl},{virLvlAdj},{totExp},{totExpAdj},{cmbLvl},{cmbLvlAdj:>4.3f},{cmbExpAdj},{RScore}\n"
 
-print(f"╚══════════════╩════╩══════╩══════╩══════╩════════════╩═════╩═══════╝\n\nHiScore fails: {HSFails}\n\nRuneMetrics fails: {RMFails}\n\nAccount Fuckups: {HPTooHigh}\n\nRSN Changes: {RSNChange}")
+print(f"╚══════════════╩════╩══════╩══════╩══════╩════════════╩═════╩═══════╝\n\nHiScore fails: {HSFails}\n\nRuneMetrics fails: {RMFails}\n\nAccount Fuckups: {HPTooHigh}\n\nSkillers: {IsSkiller}\n\nRSN Changes: {RSNChange}")
 with open("data/usernames.csv", "w+") as usernamesFile:
     usernamesFile.write(usernamesString)
 with open("data/hiscores.csv", "w+") as hiscoresFile:
