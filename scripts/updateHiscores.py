@@ -186,11 +186,5 @@ for username in usernames:
     hiscoresString += f"{username},{conLvl},{conExp},{totLvl},{totLvlAdj},{virLvl},{virLvlAdj},{totExp},{totExpAdj},{cmbLvl},{cmbLvlAdj:>4.3f},{cmbExpAdj},{RScore}\n"
 
 print(f"╚══════════════╩════╩══════╩══════╩══════╩════════════╩═════╩═══════╝\n\nHiScore fails: {HSFails}\n\nRuneMetrics fails: {RMFails}\n\nAccount Fuckups: {HPTooHigh}\n\nSkillers: {IsSkiller}\n\nRSN Changes: {RSNChange}\n\nRuneMetrics private: {RMPrivate}")
-
-
-HPTooHigh = []
-RSNChange = []
-RMPrivate = []
-IsSkiller = []
 with open("data/hiscores.csv", "w+") as hiscoresFile:
     hiscoresFile.write(hiscoresString)
