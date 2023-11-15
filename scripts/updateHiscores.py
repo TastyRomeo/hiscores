@@ -69,11 +69,11 @@ def calculateEliteLevel(xp: int) -> int:
 usernames = getUsernamesFromCsv()
 
 hiscoresString = ""
-usernamesString = ""
 HSFails = []
 RMFails = []
 HPTooHigh = []
 RSNChange = []
+RMPrivate = []
 IsSkiller = []
 print(f"╔══════════════╦════╦══════╦══════╦══════╦════════════╦═════╦═══════╗")
 print(f"║ DISPLAY NAME ║ HP ║ HPXP ║ TOTL ║ VIRT ║  TOTAL XP  ║ CMB ║ SCORE ║")
@@ -108,16 +108,15 @@ for username in usernames:
         # Try using RuneMetrics
         RMData = getRuneMetrics(username)
         if not RMData:
-            # Could not load RuneMetrics, keep in list for retry on next update
-            usernamesString += f"{username}\n"
+            # Could not load RuneMetrics
             continue;
         if "error" in RMData:
             if RMData["error"] == "NO_PROFILE":
-                # Username changed, remove from list
+                # Username changed, probably
                 RSNChange += [username]
             elif RMData["error"] == "PROFILE_PRIVATE":
-                # RuneMetrics turned private, keep in list for retry on next update
-                usernamesString += f"{username}\n"
+                # RuneMetrics set to private
+                RMPrivate += [username]
             continue
         
         totLvl = RMData["totalskill"]
@@ -176,11 +175,14 @@ for username in usernames:
     virLvlAdj = virLvl - conLvl + 1
 
     print(f"║ {username:<12s} ║ {conLvl:>2} ║ {conExp:>4} ║ {totLvl:>4} ║ {virLvl:>4} ║ {totExp:>10} ║ {cmbLvl:>3} ║ {RScore:>5} ║")
-    usernamesString += f"{username}\n"
     hiscoresString += f"{username},{conLvl},{conExp},{totLvl},{totLvlAdj},{virLvl},{virLvlAdj},{totExp},{totExpAdj},{cmbLvl},{cmbLvlAdj:>4.3f},{cmbExpAdj},{RScore}\n"
 
-print(f"╚══════════════╩════╩══════╩══════╩══════╩════════════╩═════╩═══════╝\n\nHiScore fails: {HSFails}\n\nRuneMetrics fails: {RMFails}\n\nAccount Fuckups: {HPTooHigh}\n\nSkillers: {IsSkiller}\n\nRSN Changes: {RSNChange}")
-with open("data/usernames.csv", "w+") as usernamesFile:
-    usernamesFile.write(usernamesString)
+print(f"╚══════════════╩════╩══════╩══════╩══════╩════════════╩═════╩═══════╝\n\nHiScore fails: {HSFails}\n\nRuneMetrics fails: {RMFails}\n\nAccount Fuckups: {HPTooHigh}\n\nSkillers: {IsSkiller}\n\nRSN Changes: {RSNChange}\n\nRuneMetrics private: {RMPrivate}")
+
+
+HPTooHigh = []
+RSNChange = []
+RMPrivate = []
+IsSkiller = []
 with open("data/hiscores.csv", "w+") as hiscoresFile:
     hiscoresFile.write(hiscoresString)
