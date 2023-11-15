@@ -158,9 +158,17 @@ for username in usernames:
     # Filter out mains and skillers
     if conLvl > 15:
         HPTooHigh += [username]
+        print("User "+username+" supposedly has HP Lvl > 15\n")
+        print("Dumping info: \n")
+        print(lvlList)
+        print(expList)
         continue;
     elif max(attLvl, strLvl, mgcLvl, rngLvl, necLvl, defLvl, pryLvl, sumLvl) < 11:
         IsSkiller += [username]
+        print("User "+username+" is supposedly a skiller\n")
+        print("Dumping info: \n")
+        print(lvlList)
+        print(expList)
         continue;
             
     virLvl = sum([(calculateLevel(expList[i]) if i != 26 else calculateEliteLevel(expList[i])) for i in range(29)])
