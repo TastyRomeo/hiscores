@@ -12,7 +12,7 @@ def download(url: str):
 def getHiScores(username: str):
     global HSFails
     url = "https://secure.runescape.com/m=hiscore/index_lite.ws?player=" + username.replace(" ","%20")
-    for _ in range(10):
+    for _ in range(2):
         try:
             res = download(url).text
             rows = res.split("\n")[:-1]
@@ -26,7 +26,7 @@ def getHiScores(username: str):
 def getRuneMetrics(username: str):
     global RMFails
     url = "https://apps.runescape.com/runemetrics/profile/profile?user=" + username.replace(" ","%20") + "&activities=0"
-    for _ in range(10):
+    for _ in range(4):
         try:
             res = download(url)
             return res.json()
