@@ -18,6 +18,5 @@ jobs:
         with:
           file-path: |
             data/hiscores.csv
-            data/usernames.csv
-          commit-msg: Update hiscores.csv and usernames.csv
+          commit-msg: Update hiscores.csv
           github-token: ${{ secrets.GITHUB_TOKEN }}
