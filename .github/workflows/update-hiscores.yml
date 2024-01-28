@@ -9,8 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-node@v4
+      - uses: actions/setup-python@v5
       - name: Generate new hiscores
         run: python3 ./scripts/updateHiscores.py
       - name: Commit files
