@@ -11,12 +11,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
       - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12' 
       - name: Generate new hiscores
         run: python3 ./scripts/updateHiscores.py
       - name: Commit files
-        uses: test-room-7/action-update-file@v1
+        uses: EndBug/add-and-commit@v9
         with:
-          file-path: |
-            data/hiscores.csv
-          commit-msg: Update hiscores.csv
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          default_author: github_actions
+          message: 'Update hiscores.csve'
+          add: ' data/hiscores.csv'
