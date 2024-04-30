@@ -82,7 +82,7 @@
                 orderable: false,
                 visible: false,
                 render: function( data, type, row ) {
-                  return (+parseFloat(data).toFixed(1)).toLocaleString('en-GB');
+                  return parseFloat(data).toLocaleString('en-GB',{minimumFractionDigits:1, maximumFractionDigits:1});
                 },
                 type: 'num-fmt'
               },
