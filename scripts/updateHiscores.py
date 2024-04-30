@@ -175,7 +175,7 @@ for username in usernames:
         continue;
     
     # Filter out accounts with too few combat exp
-    cmbExpAdj = attExp + strExp + mgcExp + rngExp + necExp + defExp + pryExp + sumExp
+    cmbExpAdj = round(attExp + strExp + mgcExp + rngExp + necExp + defExp + pryExp + sumExp,1)
     if cmbExpAdj < 100000:
         NotRanked += [username] 
         continue;
@@ -187,11 +187,11 @@ for username in usernames:
     # Subtract Constitution level and xp
     cmbLvlAdj = combatLevel(attLvl, strLvl, mgcLvl, rngLvl, necLvl, defLvl, 1, pryLvl, sumLvl)
     totLvlAdj = totLvl - conLvl + 1
-    totExpAdj = totExp - conExp
+    totExpAdj = round(totExp - conExp,1)
     virLvlAdj = virLvl - conLvl + 1
 
     print(f"║ {username:<12s} ║ {conLvl:>2} ║ {conExp:>6.1f} ║ {totLvl:>4} ║ {virLvl:>4} ║ {totExp:>12.1f} ║ {cmbLvl:>7.3f} ║ {RScore:>5} ║")
-    hiscoresString += f"{username},{conLvl},{conExp},{totLvl},{totLvlAdj},{virLvl},{virLvlAdj},{totExp},{totExpAdj},{cmbLvl},{cmbLvlAdj:>4.3f},{cmbExpAdj},{RScore}\n"
+    hiscoresString += f"{username},{conLvl},{conExp:.1f},{totLvl},{totLvlAdj},{virLvl},{virLvlAdj},{totExp:.1f},{totExpAdj:.1f},{cmbLvl:.3f},{cmbLvlAdj:.3f},{cmbExpAdj:.1f},{RScore}\n"
 
 print(f"╚══════════════╩════╩════════╩══════╩══════╩══════════════╩═════════╩═══════╝\n\nCould not get sufficient data for: {UserFails}\n\nRuneMetrics fails: {RuMeFails}\n\nAccounts Ruined: {HPTooHigh}\n\nNot Ranked: {NotRanked}\n\nRSN Changes: {RSNChange}\n\nRuneMetrics private: {RMPrivate}")
 with open("data/hiscores.csv", "w+") as hiscoresFile:
