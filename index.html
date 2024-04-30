@@ -82,7 +82,7 @@
                 orderable: false,
                 visible: false,
                 render: function( data, type, row ) {
-                  return parseInt(data).toLocaleString('en-US');
+                  return parseFloat(data).toLocaleString('en-US');
                 },
                 type: 'num-fmt'
               },
