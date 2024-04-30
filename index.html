@@ -137,7 +137,7 @@
                 orderSequence: ['desc'],
                 orderData: [8,12],
                 render: function( data, type, row ) {
-                  return parseInt(data).toLocaleString('en-GB');
+                  return parseFloat(data).toLocaleString('en-GB',{minimumFractionDigits:1, maximumFractionDigits:1});
                 },
                 type: 'num-fmt'
               },
@@ -148,7 +148,7 @@
                 orderData: [8,12],
                 visible: false,
                 render: function( data, type, row ) {
-                  return parseInt(data).toLocaleString('en-GB');
+                  return parseFloat(data).toLocaleString('en-GB',{minimumFractionDigits:1, maximumFractionDigits:1});
                 },
                 type: 'num-fmt'
               },
@@ -158,7 +158,7 @@
                 orderSequence: ['desc'],
                 orderData: [10,11],
                 render: function( data, type, row ) {
-                  return parseInt(data).toLocaleString('en-GB');
+                  return parseFloat(data).toLocaleString('en-GB',{minimumFractionDigits:3, maximumFractionDigits:3});
                 },
                 type: 'num-fmt'
               },
@@ -169,7 +169,7 @@
                 orderData: [10,11],
                 visible: false,
                 render: function( data, type, row ) {
-                  return parseInt(data).toLocaleString('en-GB');
+                  return parseFloat(data).toLocaleString('en-GB',{minimumFractionDigits:3, maximumFractionDigits:3});
                 },
                 type: 'num-fmt'
               },
@@ -179,7 +179,7 @@
                 orderSequence: ['desc'],
                 visible: false,
                 render: function( data, type, row ) {
-                  return parseInt(data).toLocaleString('en-GB');
+                  return parseFloat(data).toLocaleString('en-GB',{minimumFractionDigits:1, maximumFractionDigits:1});
                 },
                 type: 'num-fmt'
               },
@@ -268,7 +268,7 @@
   </head>
   <body>
     <div id="page">
-      <h1>10HP HiScores</h1>
+      <h1>Low HP HiScores</h1>
       <input type="checkbox" id='useVirtual' name="useVirtual" /><label for="useVirtual">Toggle Virtual Levelling</label><br />
       <input type="checkbox" id='showConstitution' name="showConstitution" /><label for="showConstitution">Toggle HP Level/XP</label><br />
       <input type="checkbox" id='useAdjusted' name="useAdjusted" /><label for="useAdjusted">Toggle Adjusted Levels/XP</label><br />
@@ -276,7 +276,7 @@
       Requirements to be listed:
       <ul>
         <li>HP is at most level 15, i.e. can be reset by Nastroth;</li>
-        <li>At least one combat skill (other than HP) is above level 10, i.e. cannot be reset by Nastroth;</li>
+        <li>Must have at least 100,000 combat XP in total;</li>
         <li>All skills except HP must be ranked on the HiScores, or RuneMetrics must be public;</li>
         <li>Username has to be added to the CSV file. You're welcome to <a href="https://github.com/TastyRomeo/hiscores/issues/new" target="_blank">open an issue</a> or <a href="https://github.com/TastyRomeo/hiscores/compare" target="_blank">make a pull request</a> to do so.</li>
       </ul>
