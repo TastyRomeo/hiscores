@@ -55,7 +55,7 @@
           for(let i in entries){
             csv[i] = entries[i].split(',');
           }
-          $('#hiscoreTable').DataTable({
+          table = $('#hiscoreTable').DataTable({
             orderMulti: false,
             autoWidth: false,
             language: {
