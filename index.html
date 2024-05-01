@@ -40,6 +40,9 @@
         color: #f7f6f1;
         margin: 0;
       }
+      span.dt-column-order {
+        display: none;
+      }
     </style>
 
     <link rel="stylesheet" href="https://cdn.datatables.net/2.0.5/css/dataTables.dataTables.min.css">
@@ -67,20 +70,17 @@
               { 
                 title: "Display Name", // 0. Display Name
                 className: "dt-body-left dt-head-center",
-                orderable: false,
                 type: 'string'
               },
               { 
                 title: "HP Lvl", // 1. HP Lvl
                 className: "dt-body-right dt-head-center",
-                orderable: false,
                 visible: false,
                 type: 'num'
               },
               { 
                 title: "HP XP", // 2. HP XP
                 className: "dt-body-right dt-head-center",
-                orderable: false,
                 visible: false,
                 render: function( data, type, row ) {
                   return parseFloat(data).toLocaleString('en-GB',{minimumFractionDigits:1, maximumFractionDigits:1});
