@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <title>Low HP HiScores</title>
     <link rel="shortcut icon" type="image/png" href="img/favicon.png">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.5/css/dataTables.dataTables.min.css">
     <style>
       html, body {
         margin: 0;
@@ -43,9 +44,11 @@
       span.dt-column-order {
         display: none;
       }
+      table.dataTable thead tr th {
+        position: relative;
+        padding-right: 0px;
+      }
     </style>
-
-    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.5/css/dataTables.dataTables.min.css">
     <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
     <script src="https://cdn.datatables.net/2.0.5/js/dataTables.min.js"></script>
     <script>
