@@ -219,27 +219,27 @@
             data: csv
           });
         }});
+        var col = Array.from({length: 12}, (_, i) => i + 1).map(table.column);
         $('input[name="showConstitution"]').change(function () {
-          let column1 = table.column(1);
-          let column2 = table.column(2);
-          column1.visible(!column1.visible());
-          column2.visible(!column2.visible());
+          col[1].visible(!col[1].visible());
+          col[2].visible(!col[2].visible());
+          width = $('input[name="showConstitution"]').is(":checked") ? '20%' : '14.28%';
+          col[1].width(width);
+          for ( i = 4; i <= 12; i++ ) {
+            col[i].width(width);
+          }
         });
         $('input[name="useVirtual"]').change(function () {
-          let column3 = table.column(3);
-          let column4 = table.column(4);
-          let column5 = table.column(5);
-          let column6 = table.column(6);
           if (!$('input[name="useAdjusted"]').is(":checked")) {
-            column3.visible(!column3.visible());
-            column5.visible(!column5.visible());
+            col[3].visible(!col[3].visible());
+            col[5].visible(!col[5].visible());
             orderNr = table.order()[0][0];
             if ([3,5].includes(orderNr)) {
               table.order([[3==orderNr ? 5 : 3,"desc"]]).draw()
             }
           } else {
-            column4.visible(!column4.visible());
-            column6.visible(!column6.visible());
+            col[4].visible(!col[4].visible());
+            col[6].visible(!col[6].visible());
             orderNr = table.order()[0][0];
             if ([4,6].includes(orderNr)) {
               table.order([[4==orderNr ? 6 : 4,"desc"]]).draw()
