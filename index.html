@@ -273,8 +273,7 @@
           }
         });
         $('input[name="useDecimals"]').change(function () {
-          table.destroy();
-          table.draw();
+          table.rows().invalidate();
         });
       });
     </script>
