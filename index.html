@@ -73,6 +73,11 @@
           return intFormat( data, type, row );
         }
       };
+      let changeVisibility = function( L ) {
+        for (const i in L) {
+          table.columns(i).visibility(!table.columns(i).visibility());
+        }
+      }
       $(function(){
         $.get({url:"data/hiscores.csv",cache:false,success:function(data) {
           let csv = [];
@@ -219,27 +224,23 @@
             data: csv
           });
         }});
-        var col = Array.from({length: 12}, (_, i) => i + 1).map(table.column);
         $('input[name="showConstitution"]').change(function () {
-          col[1].visible(!col[1].visible());
-          col[2].visible(!col[2].visible());
+          changeVisibility([1,2]);
           width = $('input[name="showConstitution"]').is(":checked") ? '20%' : '14.28%';
-          col[1].width(width);
+          table.column(1).width(width);
           for ( i = 4; i <= 12; i++ ) {
-            col[i].width(width);
+            table.column(i).width(width);
           }
         });
         $('input[name="useVirtual"]').change(function () {
           if (!$('input[name="useAdjusted"]').is(":checked")) {
-            col[3].visible(!col[3].visible());
-            col[5].visible(!col[5].visible());
+            changeVisibility([3,5]);
             orderNr = table.order()[0][0];
             if ([3,5].includes(orderNr)) {
               table.order([[3==orderNr ? 5 : 3,"desc"]]).draw()
             }
           } else {
-            col[4].visible(!col[4].visible());
-            col[6].visible(!col[6].visible());
+            changeVisibility([4,6]);
             orderNr = table.order()[0][0];
             if ([4,6].includes(orderNr)) {
               table.order([[4==orderNr ? 6 : 4,"desc"]]).draw()
@@ -247,33 +248,20 @@
           }
         });
         $('input[name="useAdjusted"]').change(function () {
-          let column3 = table.column(3);
-          let column4 = table.column(4);
-          let column5 = table.column(5);
-          let column6 = table.column(6);
           if (!$('input[name="useVirtual"]').is(":checked")) {
-            column3.visible(!column3.visible());
-            column4.visible(!column4.visible());
+            changeVisibility([3,4]);
             orderNr = table.order()[0][0];
             if ([3,4].includes(orderNr)) {
               table.order([[3==orderNr ? 4 : 3,"desc"]]).draw()
             }
           } else {
-            column5.visible(!column5.visible());
-            column6.visible(!column6.visible());
+            changeVisibility([5,6]);
             orderNr = table.order()[0][0];
             if ([5,6].includes(orderNr)) {
               table.order([[5==orderNr ? 6 : 5,"desc"]]).draw()
             }
           }
-          let column7 = table.column(7);
-          let column8 = table.column(8);
-          let column9 = table.column(9);
-          let column10 = table.column(10);
-          column7.visible(!column7.visible());
-          column8.visible(!column8.visible());
-          column9.visible(!column9.visible());
-          column10.visible(!column10.visible());
+          changeVisibility([7,8,9,10]);
           if ([7,8].includes(orderNr)) {
             table.order([[7==orderNr ? 8 : 7,"desc"]]).draw()
           }
