@@ -44,6 +44,7 @@
         display: none;
       }
       table.dataTable thead tr th {
+        min-width: 142px;
         padding: 10px !important;
       }
       a {
@@ -99,8 +100,7 @@
               { 
                 title: "Display Name", // 0. Display Name
                 className: "dt-body-left dt-head-center",
-                type: 'string',
-                width: '20%'
+                type: 'string'
               },
               { 
                 title: "HP Lvl", // 1. HP Lvl
@@ -108,8 +108,7 @@
                 orderSequence: ['desc','asc'],
                 orderData: [2],
                 visible: false,
-                type: 'num',
-                width: '14.28%'
+                type: 'num'
               },
               { 
                 title: "HP XP", // 2. HP XP
@@ -118,8 +117,7 @@
                 orderData: [2],
                 visible: false,
                 render: floatFormat1,
-                type: 'num-fmt',
-                width: '14.28%'
+                type: 'num-fmt'
               },
               { 
                 title: "Total Lvl", // 3. Total Lvl
@@ -127,8 +125,7 @@
                 orderSequence: ['desc','asc'],
                 orderData: [4,8,12],
                 render: intFormat,
-                type: 'num-fmt',
-                width: '20%'
+                type: 'num-fmt'
               },
               { 
                 title: "Total Lvl", // 4. Total Lvl - HP Lvl
@@ -137,8 +134,7 @@
                 orderData: [4,8,12],
                 visible: false,
                 render: intFormat,
-                type: 'num-fmt',
-                width: '20%'
+                type: 'num-fmt'
               },
               { 
                 title: "Total Lvl", // 5. Virtual Total Lvl
@@ -147,8 +143,7 @@
                 orderData: [6,8,12],
                 visible: false,
                 render: intFormat,
-                type: 'num-fmt',
-                width: '20%'
+                type: 'num-fmt'
               },
               { 
                 title: "Total Lvl", // 6. Virtual Total Lvl - HP Lvl
@@ -157,8 +152,7 @@
                 orderData: [6,8,12],
                 visible: false,
                 render: intFormat,
-                type: 'num-fmt',
-                width: '20%'
+                type: 'num-fmt'
               },
               { 
                 title: "Total XP", // 7. Total XP
@@ -166,8 +160,7 @@
                 orderSequence: ['desc','asc'],
                 orderData: [8,12],
                 render: floatFormat1,
-                type: 'num-fmt',
-                width: '20%'
+                type: 'num-fmt'
               },
               { 
                 title: "Total XP", // 8. Total XP - HP XP
@@ -176,8 +169,7 @@
                 orderData: [8,12],
                 visible: false,
                 render: floatFormat1,
-                type: 'num-fmt',
-                width: '20%'
+                type: 'num-fmt'
               },
               { 
                 title: "Combat Lvl", // 9. Combat Lvl
@@ -185,8 +177,7 @@
                 orderSequence: ['desc','asc'],
                 orderData: [10,11],
                 render: floatFormat3,
-                type: 'num-fmt',
-                width: '20%'
+                type: 'num-fmt'
               },
               { 
                 title: "Combat Lvl", // 10. Combat Lvl adjusted for HP
@@ -195,8 +186,7 @@
                 orderData: [10,11],
                 visible: false,
                 render: floatFormat3,
-                type: 'num-fmt',
-                width: '20%'
+                type: 'num-fmt'
               },
               { 
                 title: "Combat XP", // 11. Combat XP adjusted for HP
@@ -204,8 +194,7 @@
                 orderSequence: ['desc','asc'],
                 visible: false,
                 render: floatFormat1,
-                type: 'num-fmt',
-                width: '20%'
+                type: 'num-fmt'
               },
               { 
                 title: "RuneScore", // 12. RuneScore
@@ -227,10 +216,8 @@
         }});
         $('input[name="showConstitution"]').change(function () {
           changeVisibility([1,2]);
-          width = $('input[name="showConstitution"]').is(":checked") ? '20%' : '14.28%';
-          table.column(1).width(width);
-          for ( i = 4; i <= 12; i++ ) {
-            table.column(i).width(width);
+          if ($('input[name="showConstitution"]').is(":checked")) {
+            1+1;
           }
         });
         $('input[name="useVirtual"]').change(function () {
