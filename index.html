@@ -75,7 +75,7 @@
       };
       let changeVisibility = function( L ) {
         for (const i in L) {
-          table.columns(i).visibility(!table.columns(i).visibility());
+          table.column(i).visibility(!table.column(i).visibility());
         }
       }
       $(function(){
