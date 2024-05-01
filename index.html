@@ -55,6 +55,15 @@
     <script src="https://cdn.datatables.net/2.0.5/js/dataTables.min.js"></script>
     <script>
       var table;
+      let intFormat = function( data, type, row ) {
+        return parseInt(data).toLocaleString('en-GB');
+      };
+      let floatFormat1 = function( data, type, row ) {
+        return parseFloat(data).toLocaleString('en-GB',{minimumFractionDigits:1, maximumFractionDigits:1});
+      };
+      let floatFormat3 = function( data, type, row ) {
+        return parseFloat(data).toLocaleString('en-GB',{minimumFractionDigits:3, maximumFractionDigits:3});
+      };
       $(function(){
         $.get({url:"data/hiscores.csv",cache:false,success:function(data) {
           let csv = [];
@@ -80,119 +89,103 @@
               { 
                 title: "HP Lvl", // 1. HP Lvl
                 className: "dt-body-right dt-head-center",
+                orderSequence: ['desc','asc'],
+                orderData: [2],
                 visible: false,
                 type: 'num'
               },
               { 
                 title: "HP XP", // 2. HP XP
                 className: "dt-body-right dt-head-center",
+                orderSequence: ['desc','asc'],
+                orderData: [2],
                 visible: false,
-                render: function( data, type, row ) {
-                  return parseFloat(data).toLocaleString('en-GB',{minimumFractionDigits:1, maximumFractionDigits:1});
-                },
+                render: floatFormat1,
                 type: 'num-fmt'
               },
               { 
                 title: "Total Lvl", // 3. Total Lvl
                 className: "dt-body-right dt-head-center",
-                orderSequence: ['desc'],
+                orderSequence: ['desc','asc'],
                 orderData: [4,8,12],
-                render: function( data, type, row ) {
-                  return parseInt(data).toLocaleString('en-GB');
-                },
+                render: intFormat,
                 type: 'num-fmt'
                 
               },
               { 
                 title: "Total Lvl", // 4. Total Lvl - HP Lvl
                 className: "dt-body-right dt-head-center",
-                orderSequence: ['desc'],
+                orderSequence: ['desc','asc'],
                 orderData: [4,8,12],
                 visible: false,
-                render: function( data, type, row ) {
-                  return parseInt(data).toLocaleString('en-GB');
-                },
+                render: intFormat,
                 type: 'num-fmt'
                 
               },
               { 
                 title: "Total Lvl", // 5. Virtual Total Lvl
                 className: "dt-body-right dt-head-center",
-                orderSequence: ['desc'],
+                orderSequence: ['desc','asc'],
                 orderData: [6,8,12],
                 visible: false,
-                render: function( data, type, row ) {
-                  return parseInt(data).toLocaleString('en-GB');
-                },
+                render: intFormat,
                 type: 'num-fmt'
               },
               { 
                 title: "Total Lvl", // 6. Virtual Total Lvl - HP Lvl
                 className: "dt-body-right dt-head-center",
-                orderSequence: ['desc'],
+                orderSequence: ['desc','asc'],
                 orderData: [6,8,12],
                 visible: false,
-                render: function( data, type, row ) {
-                  return parseInt(data).toLocaleString('en-GB');
-                },
+                render: intFormat,
                 type: 'num-fmt'
               },
               { 
                 title: "Total XP", // 7. Total XP
                 className: "dt-body-right dt-head-center",
-                orderSequence: ['desc'],
+                orderSequence: ['desc','asc'],
                 orderData: [8,12],
-                render: function( data, type, row ) {
-                  return parseFloat(data).toLocaleString('en-GB',{minimumFractionDigits:1, maximumFractionDigits:1});
-                },
+                render: floatFormat1,
                 type: 'num-fmt'
               },
               { 
                 title: "Total XP", // 8. Total XP - HP XP
                 className: "dt-body-right dt-head-center",
-                orderSequence: ['desc'],
+                orderSequence: ['desc','asc'],
                 orderData: [8,12],
                 visible: false,
-                render: function( data, type, row ) {
-                  return parseFloat(data).toLocaleString('en-GB',{minimumFractionDigits:1, maximumFractionDigits:1});
-                },
+                render: floatFormat1,
                 type: 'num-fmt'
               },
               { 
                 title: "Combat Lvl", // 9. Combat Lvl
                 className: "dt-body-right dt-head-center",
-                orderSequence: ['desc'],
+                orderSequence: ['desc','asc'],
                 orderData: [10,11],
-                render: function( data, type, row ) {
-                  return parseFloat(data).toLocaleString('en-GB',{minimumFractionDigits:3, maximumFractionDigits:3});
-                },
+                render: floatFormat3,
                 type: 'num-fmt'
               },
               { 
                 title: "Combat Lvl", // 10. Combat Lvl adjusted for HP
                 className: "dt-body-right dt-head-center",
-                orderSequence: ['desc'],
+                orderSequence: ['desc','asc'],
                 orderData: [10,11],
                 visible: false,
-                render: function( data, type, row ) {
-                  return parseFloat(data).toLocaleString('en-GB',{minimumFractionDigits:3, maximumFractionDigits:3});
-                },
+                render: floatFormat3,
                 type: 'num-fmt'
               },
               { 
                 title: "Combat XP", // 11. Combat XP adjusted for HP
                 className: "dt-body-right dt-head-center",
-                orderSequence: ['desc'],
+                orderSequence: ['desc','asc'],
                 visible: false,
-                render: function( data, type, row ) {
-                  return parseFloat(data).toLocaleString('en-GB',{minimumFractionDigits:1, maximumFractionDigits:1});
-                },
+                render: floatFormat1,
                 type: 'num-fmt'
               },
               { 
                 title: "RuneScore", // 12. RuneScore
                 className: "dt-body-right dt-head-center",
-                orderSequence: ['desc'],
+                orderSequence: ['desc','asc'],
                 orderData: [12,8],
                 render: function( data, type, row ) {
                   if (data!="") {
@@ -269,15 +262,41 @@
             table.order([[9==orderNr ? 10 : 9,"desc"]]).draw()
           }
         });
+        $('input[name="useDecimals"]').change(function () {
+          let column2 = table.column(2);
+          let column7 = table.column(7);
+          let column8 = table.column(8);
+          let column9 = table.column(9);
+          let column10 = table.column(10);
+          let column11 = table.column(11);
+          if (!$('input[name="useDecimals"]').is(":checked")) {
+            column2.render(floatFormat1);
+            column7.render(floatFormat1);
+            column8.render(floatFormat1);
+            column9.render(floatFormat3);
+            column10.render(floatFormat3);
+            column11.render(floatFormat1);
+          } 
+          else {
+            column2.render(intFormat);
+            column7.render(intFormat);
+            column8.render(intFormat);
+            column9.render(intFormat);
+            column10.render(intFormat);
+            column11.render(intFormat);
+          }
+          table.draw();
+        });
       });
     </script>
   </head>
   <body>
     <div id="page">
       <h1>Low HP HiScores</h1>
-      <input type="checkbox" id='useVirtual' name="useVirtual" /><label for="useVirtual">Toggle Virtual Levelling</label><br />
-      <input type="checkbox" id='showConstitution' name="showConstitution" /><label for="showConstitution">Toggle HP Level/XP</label><br />
-      <input type="checkbox" id='useAdjusted' name="useAdjusted" /><label for="useAdjusted">Toggle Adjusted Levels/XP</label><br />
+      <input type="checkbox" id='useVirtual' name="useVirtual" /><label for="useVirtual">Use virtual levels</label><br />
+      <input type="checkbox" id='showConstitution' name="showConstitution" /><label for="showConstitution">Show HP level/XP</label><br />
+      <input type="checkbox" id='useAdjusted' name="useAdjusted" /><label for="useAdjusted">Show adjusted levels/XP</label><br />
+      <input type="checkbox" id='useDecimals' name="useDecimals" /><label for="useDecimals">Show decimal values</label><br />
       <div id="tableContainer"><table id="hiscoreTable" class="cell-border hover order-column stripe"></table></div>
       Requirements to be listed:
       <ul>
