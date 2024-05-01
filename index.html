@@ -59,10 +59,20 @@
         return parseInt(data).toLocaleString('en-GB');
       };
       let floatFormat1 = function( data, type, row ) {
-        return parseFloat(data).toLocaleString('en-GB',{minimumFractionDigits:1, maximumFractionDigits:1});
+        if ($('input[name="useDecimals"]').is(":checked")) {
+          return parseFloat(data).toLocaleString('en-GB',{minimumFractionDigits:1, maximumFractionDigits:1});
+        }
+        else {
+          return intFormat( data, type, row );
+        }
       };
       let floatFormat3 = function( data, type, row ) {
-        return parseFloat(data).toLocaleString('en-GB',{minimumFractionDigits:3, maximumFractionDigits:3});
+        if ($('input[name="useDecimals"]').is(":checked")) {
+          return parseFloat(data).toLocaleString('en-GB',{minimumFractionDigits:3, maximumFractionDigits:3});
+        }
+        else {
+          return intFormat( data, type, row );
+        }
       };
       $(function(){
         $.get({url:"data/hiscores.csv",cache:false,success:function(data) {
@@ -263,28 +273,6 @@
           }
         });
         $('input[name="useDecimals"]').change(function () {
-          let column2 = table.column(2);
-          let column7 = table.column(7);
-          let column8 = table.column(8);
-          let column9 = table.column(9);
-          let column10 = table.column(10);
-          let column11 = table.column(11);
-          if (!$('input[name="useDecimals"]').is(":checked")) {
-            column2.render(floatFormat1);
-            column7.render(floatFormat1);
-            column8.render(floatFormat1);
-            column9.render(floatFormat3);
-            column10.render(floatFormat3);
-            column11.render(floatFormat1);
-          } 
-          else {
-            column2.render(intFormat);
-            column7.render(intFormat);
-            column8.render(intFormat);
-            column9.render(intFormat);
-            column10.render(intFormat);
-            column11.render(intFormat);
-          }
           table.draw();
         });
       });
