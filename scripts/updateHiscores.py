@@ -85,6 +85,7 @@ HPTooHigh = []
 RSNChange = []
 RMPrivate = []
 NotRanked = []
+GotBanned = []
 print(f"╔══════════════╦════╦════════╦══════╦══════╦══════════════╦═════════╦═══════╗")
 print(f"║ DISPLAY NAME ║ HP ║  HPXP  ║ TOTL ║ VIRT ║   TOTAL XP   ║   CMB   ║ SCORE ║")
 print(f"╠══════════════╬════╬════════╬══════╬══════╬══════════════╬═════════╬═══════╣")
@@ -137,6 +138,9 @@ for username in usernames:
             elif RMData["error"] == "PROFILE_PRIVATE":
                 # RuneMetrics set to private
                 RMPrivate += [username]
+            elif RMData["error"] == "NOT_A_MEMBER":
+                # RuneMetrics set to private
+                GotBanned += [username]
     
     if not success:
         UserFails += [username]
@@ -193,6 +197,6 @@ for username in usernames:
     print(f"║ {username:<12s} ║ {conLvl:>2} ║ {conExp:>6.1f} ║ {totLvl:>4} ║ {virLvl:>4} ║ {totExp:>12.1f} ║ {cmbLvl:>7.3f} ║ {RScore:>5} ║")
     hiscoresString += f"{username},{conLvl},{conExp:.1f},{totLvl},{totLvlAdj},{virLvl},{virLvlAdj},{totExp:.1f},{totExpAdj:.1f},{cmbLvl:.3f},{cmbLvlAdj:.3f},{cmbExpAdj:.1f},{RScore}\n"
 
-print(f"╚══════════════╩════╩════════╩══════╩══════╩══════════════╩═════════╩═══════╝\n\nCould not get sufficient data for: {UserFails}\n\nRuneMetrics fails: {RuMeFails}\n\nAccounts Ruined: {HPTooHigh}\n\nNot Ranked: {NotRanked}\n\nRSN Changes: {RSNChange}\n\nRuneMetrics private: {RMPrivate}")
+print(f"╚══════════════╩════╩════════╩══════╩══════╩══════════════╩═════════╩═══════╝\n\nCould not get sufficient data for: {UserFails}\n\nRuneMetrics fails: {RuMeFails}\n\nAccounts Ruined: {HPTooHigh}\n\nNot Ranked: {NotRanked}\n\nRSN Changes: {RSNChange}\n\nRuneMetrics private: {RMPrivate}\n\nAccount banned: {GotBanned}")
 with open("data/hiscores.csv", "w+") as hiscoresFile:
     hiscoresFile.write(hiscoresString)
