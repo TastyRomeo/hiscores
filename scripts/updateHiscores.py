@@ -66,7 +66,7 @@ def calculateLevel(xp: float) -> int:
     i = 0
     while xp >= L[i+1]:
         i += 1
-    return i-1
+    return i
 
 def calculateEliteLevel(xp: float) -> int:
     """Calculate elite skill level from experience"""
@@ -74,7 +74,7 @@ def calculateEliteLevel(xp: float) -> int:
     i = 0
     while xp >= L[i+1]:
         i += 1
-    return i-1
+    return i
 
 usernames = getUsernamesFromCsv()
 
