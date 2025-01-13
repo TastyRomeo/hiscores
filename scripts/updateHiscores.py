@@ -28,7 +28,7 @@ def getHiScores(username: str):
 
 def getRuneMetrics(username: str):
     """Get RuneMetrics data (in dictionary form)"""
-    global RMFails
+    global RuMeFails
     url = "https://apps.runescape.com/runemetrics/profile/profile?user=" + username.replace(" ","%20") + "&activities=0"
     # try a few times, RuneMetrics is quite often unstable...
     for _ in range(4):
