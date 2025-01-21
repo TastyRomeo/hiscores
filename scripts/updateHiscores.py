@@ -180,7 +180,8 @@ for username in usernames:
     
     # Filter out accounts with too few combat exp
     cmbExpAdj = round(attExp + strExp + mgcExp + rngExp + necExp + defExp + pryExp + sumExp,1)
-    if cmbExpAdj < 100000:
+    cmbLvlSum = attLvl + strLvl + mgcLvlp + rngLvl + necLvl + defLvl + pryLvl + sumLvl
+    if cmbExpAdj < 5000000 or cmbLvlSum < 500:
         NotRanked += [username] 
         continue;
             
