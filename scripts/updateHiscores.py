@@ -77,14 +77,13 @@ def calculateEliteLevel(xp: float) -> int:
 hiscores_path = "data/hiscores.csv"
 existing = {}
 
-if os.path.exists(hiscores_path):
-    with open(hiscores_path, newline='', encoding='utf-8') as f:
-        reader = csv.reader(f)
-        rows = list(reader)
-        if rows:
-            for r in rows:
-                if r:
-                    existing[r[0]] = r
+with open(hiscores_path, newline='', encoding='utf-8') as f:
+    reader = csv.reader(f)
+    rows = list(reader)
+    if rows:
+        for r in rows:
+            if r:
+                existing[r[0]] = r
 
 usernames = getUsernamesFromCsv()
 
