@@ -230,6 +230,5 @@ for row in hiscores_rows:
 # write back in sorted order
 with open(hiscores_path, "w+", newline='', encoding='utf-8') as f:
     writer = csv.writer(f)
-    writer.writerow(header)
     for un in sorted(merged.keys(), key=str.lower):
         writer.writerow(merged[un])
