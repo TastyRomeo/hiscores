@@ -202,10 +202,10 @@
                 orderSequence: ['desc','asc'],
                 orderData: [12,8],
                 render: function( data, type, row ) {
-                  if (data!="") {
-                    return parseInt(data).toLocaleString('en-GB');
-                  } else {
+                  if (data.trim().length === 0) {
                     return "";
+                  } else {
+                    return parseInt(data).toLocaleString('en-GB');
                   }
                 },
                 type: 'num-fmt'
