@@ -12,15 +12,13 @@ def getHiScores(username: str):
     """Get HiScores data (in array form)"""
     url = "https://secure.runescape.com/m=hiscore/index_lite.ws?player=" + username.replace(" ","%20")
     # don't try too much, player is most likely unranked due to inactivity
-    for _ in range(2):
+    for _ in range(1):
         try:
             res = download(url).text
             rows = res.split("\n")[:-1]
             data = [ [int(x) for x in row.split(",")] for row in rows ]
             # catch an uncommon(?) bug
-            if data[54][0] == -1 or data[54][1] == -1:
-                raise Exception("bugged HiScores")
-            else:
+            if data[54][0] != -1 and data[54][1] != -1:
                 return data
         except:
             pass
@@ -31,7 +29,7 @@ def getRuneMetrics(username: str):
     global RuMeFails
     url = "https://apps.runescape.com/runemetrics/profile/profile?user=" + username.replace(" ","%20") + "&activities=0"
     # try a few times, RuneMetrics is quite often unstable...
-    for _ in range(4):
+    for _ in range(1):
         try:
             res = download(url)
             return res.json()
@@ -76,9 +74,20 @@ def calculateEliteLevel(xp: float) -> int:
         i += 1
     return i
 
+hiscores_path = "data/hiscores.csv"
+existing = {}
+
+with open(hiscores_path, newline='', encoding='utf-8') as f:
+    reader = csv.reader(f)
+    rows = list(reader)
+    if rows:
+        for r in rows:
+            if r:
+                existing[r[0]] = r
+
 usernames = getUsernamesFromCsv()
 
-hiscoresString = ""
+hiscores_rows = []
 UserFails = []
 RuMeFails = []
 HPTooHigh = []
@@ -196,8 +205,30 @@ for username in usernames:
     virLvlAdj = virLvl - conLvl + 1
 
     print(f"║ {username:<12s} ║ {conLvl:>2} ║ {conExp:>6.1f} ║ {totLvl:>4} ║ {virLvl:>4} ║ {totExp:>12.1f} ║ {cmbLvl:>7.3f} ║ {RScore:>5} ║")
-    hiscoresString += f"{username},{conLvl},{conExp:.1f},{totLvl},{totLvlAdj},{virLvl},{virLvlAdj},{totExp:.1f},{totExpAdj:.1f},{cmbLvl:.3f},{cmbLvlAdj:.3f},{cmbExpAdj:.1f},{RScore}\n"
+    hiscoresString = f"{username},{conLvl},{conExp:.1f},{totLvl},{totLvlAdj},{virLvl},{virLvlAdj},{totExp:.1f},{totExpAdj:.1f},{cmbLvl:.3f},{cmbLvlAdj:.3f},{cmbExpAdj:.1f},{RScore}"
+    hiscores_rows.append(hiscoresString.split(','))
 
 print(f"╚══════════════╩════╩════════╩══════╩══════╩══════════════╩═════════╩═══════╝\n\nCould not get sufficient data for: {UserFails}\n\nRuneMetrics fails: {RuMeFails}\n\nAccounts Ruined: {HPTooHigh}\n\nNot Ranked: {NotRanked}\n\nRSN Changes: {RSNChange}\n\nRuneMetrics private: {RMPrivate}\n\nAccount banned: {GotBanned}")
-with open("data/hiscores.csv", "w+") as hiscoresFile:
-    hiscoresFile.write(hiscoresString)
+
+# merge existing + new
+merged = {}
+
+# start with the old file unchanged
+for un, line in existing.items():
+    merged[un] = line
+
+# now update with new data
+for row in hiscores_rows:
+    un = row[0]
+    if un in merged:
+        # only replace if changes
+        if merged[un] != row:
+            merged[un] = row
+    else:
+        merged[un] = row
+
+# write back in sorted order
+with open(hiscores_path, "w+", newline='', encoding='utf-8') as f:
+    writer = csv.writer(f)
+    for un in sorted(merged.keys(), key=str.lower):
+        writer.writerow(merged[un])
