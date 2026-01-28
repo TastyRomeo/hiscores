@@ -12,7 +12,7 @@ def getHiScores(username: str):
     """Get HiScores data (in array form)"""
     url = "https://secure.runescape.com/m=hiscore/index_lite.ws?player=" + username.replace(" ","%20")
     # don't try too much, player is most likely unranked due to inactivity
-    for _ in range(2):
+    for _ in range(1):
         try:
             res = download(url).text
             rows = res.split("\n")[:-1]
@@ -29,7 +29,7 @@ def getRuneMetrics(username: str):
     global RuMeFails
     url = "https://apps.runescape.com/runemetrics/profile/profile?user=" + username.replace(" ","%20") + "&activities=0"
     # try a few times, RuneMetrics is quite often unstable...
-    for _ in range(4):
+    for _ in range(1):
         try:
             res = download(url)
             return res.json()
