@@ -42,7 +42,7 @@ def getRuneMetrics(username: str):
 
 def getUsernamesFromCsv() -> list[str]:
     """Get usernames from csv file, sorted and with duplicates removed"""
-    orig = [_[0] for _ in csv.reader(open('newdata/data/usernames.csv'))]
+    orig = [_[0] for _ in csv.reader(open('data/usernames.csv'))]
     temp = set()
     srtd = []
     for user in orig:
