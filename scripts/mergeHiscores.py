@@ -10,13 +10,14 @@ header=[]
 with open(hiscores_old_path, newline='', encoding='utf-8') as f:
     reader = csv.reader(f)
     rows = list(reader)
-    header = rows[0]
     for r in rows[1:]:
         oldHS[r[0]] = r
 
 with open(hiscores_new_path, newline='', encoding='utf-8') as f:
     reader = csv.reader(f)
     rows = list(reader)
+    # Pick header from new version in case of changes to script!
+    header = rows[0]
     for r in rows[1:]:
         newHS[r[0]] = r
 
