@@ -99,9 +99,9 @@ RMPrivate = []
 NotRanked = []
 AccBanned = []
 UnknwnErr = []
-print(f"╔══════════════╦════╦════════╦══════╦══════╦══════════════╦═════════╦═══════╗")
-print(f"║ DISPLAY NAME ║ HP ║  HPXP  ║ TOTL ║ VIRT ║   TOTAL XP   ║   CMB   ║ SCORE ║")
-print(f"╠══════════════╬════╬════════╬══════╬══════╬══════════════╬═════════╬═══════╣")
+print(f"╔══════════════╦════╦══════╦══════╦══════╦════════════╦═════╦═══════╗")
+print(f"║ DISPLAY NAME ║ HP ║ HPXP ║ TOTL ║ VIRT ║  TOTAL XP  ║ CMB ║ SCORE ║")
+print(f"╠══════════════╬════╬══════╬══════╬══════╬════════════╬═════╬═══════╣")
 
 for username in usernames:
 
@@ -216,24 +216,23 @@ for username in usernames:
     print(f"║ {username:<12s} ║ {conLvl:>2} ║ {conExp:>4} ║ {totLvl:>4} ║ {virLvl:>4} ║ {totExp:>10} ║ {cmbLvl:>3} ║ {RScore:>5} ║")
     hiscoresString = f"{username},{conLvl},{conExp},{totLvl},{totLvlAdj},{virLvl},{virLvlAdj},{totExp},{totExpAdj},{cmbLvl},{cmbLvlAdj},{cmbExpAdj},{RScore}"
     hiscores_rows.append(hiscoresString.split(','))
-
-print(f"╚══════════════╩════╩════════╩══════╩══════╩══════════════╩═════════╩═══════╝\n\n")
+print(f"╚══════════════╩════╩══════╩══════╩══════╩════════════╩═════╩═══════╝\n\n")
 NrFails = len(UserFails)
-print(f"Could not get sufficient data for {NrFails} users: {UserFails}\n\n")
+print(f"Could not get sufficient data for {NrFails} users: {UserFails}\n")
 NrHiScFails = len(HiScFails)
-print(f"HiScore fails: {NrHiScFails}\n\n")
+print(f"HiScore fails: {NrHiScFails}\n")
 NrRuMeFails = len(RuMeFails)
-print(f"RuneMetrics fails: {NrRuMeFails}\n\n")
+print(f"RuneMetrics fails: {NrRuMeFails}\n")
 NrRuinedAcc = len(RuinedAcc)
-print(f"Accounts Ruined: {NrRuinedAcc} ({*RuinedAcc,})\n\n")
+print(f"Accounts Ruined: {NrRuinedAcc} ({*RuinedAcc,})\n")
 NrNotRanked = len(NotRanked)
-print(f"Not Ranked: {NrNotRanked} ({*NotRanked,})\n\n")
+print(f"Not Ranked: {NrNotRanked} ({*NotRanked,})\n")
 NrRSNChange = len(RSNChange)
-print(f"RSN Changes: {NrRSNChange} ({*RSNChange,})\n\n")
+print(f"RSN Changes: {NrRSNChange} ({*RSNChange,})\n")
 NrRMPrivate = len(RMPrivate)
-print(f"RuneMetrics private: {NrRMPrivate} ({*RMPrivate,})\n\n")
+print(f"RuneMetrics private: {NrRMPrivate} ({*RMPrivate,})\n")
 NrAccBanned = len(AccBanned)
-print(f"Account banned: {NrAccBanned} ({*AccBanned,})\n\n")
+print(f"Account banned: {NrAccBanned} ({*AccBanned,})\n")
 
 # merge existing + new
 merged = {}
