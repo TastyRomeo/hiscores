@@ -17,6 +17,7 @@ jobs:
         run: |
           pip3 install requests
           python3 scripts/updateHiscores.py
+          cat data/hiscores.csv
           mv data/hiscores.csv $RUNNER_TEMP/hiscores.csv
       - uses: actions/checkout@v6
       - run : |
