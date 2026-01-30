@@ -71,12 +71,13 @@
           //entries.shift() // Remove first
           //entries.pop() // Remove last
           for(let i in entries){
-            if(i.trim().length == 0){
+            row=entries[i]
+            if(row.trim().length == 0){
                console.log("skipped empty row");
                continue;
             }
-            console.log("Next row: "+i)
-            csv[i] = entries[i].split(',');
+            console.log("Next row: "+row)
+            csv[i] = row.split(',');
           }
           table = $('#hiscoreTable').DataTable({
             orderMulti: false,
