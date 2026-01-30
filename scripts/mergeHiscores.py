@@ -27,12 +27,12 @@ with open(hiscores_new_path, newline='', encoding='utf-8') as f:
 # Add in missing old data!
 for user in oldHS.keys():
     if user in newHS:
-        if oldHS[user][:-1] > newHS[user][:-1]:
+        if oldHS[user][-1] > newHS[user][-1]:
             # Somehow previous line is more recent (e.g. due to concurrent updates?)
             newHS[user] = oldHS[user]
     else:
         now = int(time.time())
-        upd = int(oldHS[user][:-1])
+        upd = int(oldHS[user][-1])
         if now - upd <= 1209600:
             newHS[user] = oldHS[user]
         else:
