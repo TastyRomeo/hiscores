@@ -68,15 +68,12 @@
         $.get({url:"data/hiscores.csv",cache:false,success:function(data) {
           let csv = [];
           let entries = data.split('\n');
-          //entries.shift() // Remove first
-          //entries.pop() // Remove last
+          entries.shift() // Remove first
           for(let i in entries){
             row=entries[i]
             if(row.trim().length == 0){
-               console.log("skipped empty row");
                continue;
             }
-            console.log("Next row: "+row)
             csv[i] = row.split(',');
           }
           table = $('#hiscoreTable').DataTable({
