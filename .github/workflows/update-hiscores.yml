@@ -20,7 +20,11 @@ jobs:
           pip3 install requests
           python3 newdata/scripts/updateHiscores.py
       - uses: actions/checkout@v6
-      - run: mv newdata/hiscores.csv data/hiscores.csv
+      - run: |
+          ls -a
+          cd newdata
+          ls -a
+          mv newdata/hiscores.csv data/hiscores.csv
       - name: Commit files
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
