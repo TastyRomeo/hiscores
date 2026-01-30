@@ -2,28 +2,25 @@ name: Update HiScores
 on:
   workflow_dispatch:
   schedule:
-    - cron: '40 */2 * * *'
+    - cron: '40 */1 * * *'
  
 jobs:
   hiscores:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      #- uses: actions/setup-node@v6
       - uses: actions/setup-python@v6
         with:
           python-version: '3.x' 
-      - name: Generate new hiscores
+      - name: Generate new HiScores
         run: |
           pip3 install requests
           python3 scripts/updateHiscores.py
-          cat data/hiscores.csv
           mv data/hiscores.csv $RUNNER_TEMP/hiscores.csv
       - uses: actions/checkout@v6
-      - run : |
+      - name: Merge HiScores
+        run : |
           mv $RUNNER_TEMP/hiscores.csv data/hiscores-new.csv
-      - name: Merge new hiscores
-        run: |
           python3 scripts/mergeHiscores.py
       - name: Commit files
         uses: stefanzweifel/git-auto-commit-action@v7
