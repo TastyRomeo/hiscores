@@ -42,7 +42,7 @@ def getRuneMetrics(username: str):
 
 def getUsernamesFromCsv() -> list[str]:
     """Get usernames from csv file, sorted and with duplicates removed"""
-    orig = [_[0] for _ in csv.reader(open('data/usernames.csv'))]
+    orig = [_[0] for _ in csv.reader(open('newdata/data/usernames.csv'))]
     temp = set()
     srtd = []
     for user in orig:
@@ -225,7 +225,7 @@ print(f"RuneMetrics private: {NrRMPrivate} ({', '.join(RMPrivate)})\n")
 NrAccBanned = len(AccBanned)
 print(f"Account banned: {NrAccBanned} ({', '.join(AccBanned)})\n")
 
-hiscores_path = "data/hiscores-new.csv"
+hiscores_path = "newdata/hiscores.csv"
 with open(hiscores_path, "w+", newline='', encoding='utf-8') as f:
     writer = csv.writer(f)
     for row in hiscores_rows:
