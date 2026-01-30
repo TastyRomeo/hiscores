@@ -16,7 +16,7 @@ jobs:
       - name: Generate new hiscores
         run: |
           pip3 install requests
-          python3 newdata/scripts/updateHiscores.py
+          python3 scripts/updateHiscores.py
           mv data/hiscores.csv $RUNNER_TEMP/hiscores.csv
       - uses: actions/checkout@v6
       - run : |
