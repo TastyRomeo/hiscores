@@ -219,7 +219,7 @@ for username in usernames:
 
 print(f"╚══════════════╩════╩════════╩══════╩══════╩══════════════╩═════════╩═══════╝\n\n")
 NrFails = len(UserFails)
-print(f"Could not get sufficient data for {nrFails} users: {UserFails}\n\n")
+print(f"Could not get sufficient data for {NrFails} users: {UserFails}\n\n")
 NrHiScFails = len(HiScFails)
 print(f"HiScore fails: {NrHiScFails}\n\n")
 NrRuMeFails = len(RuMeFails)
