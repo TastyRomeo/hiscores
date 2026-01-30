@@ -51,8 +51,8 @@
         color: #7799CC;
       }
     </style>
-    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
-    <script src="https://cdn.datatables.net/2.0.5/js/dataTables.min.js"></script>
+    <script src="https://code.jquery.com/jquery-4.0.0.js"></script>
+    <script src="https://cdn.datatables.net/2.3.7/js/dataTables.min.js"></script>
     <script>
       var table;
       let intFormat = function( data, type, row ) {
@@ -68,7 +68,8 @@
         $.get({url:"data/hiscores.csv",cache:false,success:function(data) {
           let csv = [];
           let entries = data.split('\n');
-          entries.pop()
+          entries.shift() // Remove first
+          //entries.pop() // Remove last
           for(let i in entries){
             csv[i] = entries[i].split(',');
           }
@@ -192,6 +193,12 @@
                     return parseInt(data).toLocaleString('en-GB');
                   }
                 },
+                type: 'num-fmt'
+              },
+              { 
+                title: "TimeStamp", // 13. Timestamp
+                className: "dt-body-right dt-head-center",
+                visible: false,
                 type: 'num-fmt'
               }
             ],
