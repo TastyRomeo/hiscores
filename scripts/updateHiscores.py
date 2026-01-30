@@ -11,34 +11,26 @@ def download(url: str):
 
 def getHiScores(username: str):
     """Get HiScores data (in array form)"""
-    global HiScFails
     url = "https://secure.runescape.com/m=hiscore/index_lite.ws?player=" + username.replace(" ","%20")
-    # don't try too much, player is most likely unranked due to inactivity
-    for _ in range(1):
-        try:
-            res = download(url).text
-            rows = res.split("\n")[:-1]
-            data = [ [int(x) for x in row.split(",")] for row in rows ]
-            # catch an uncommon(?) bug
-            if data[54][0] != -1 and data[54][1] != -1:
-                return data
-        except:
-            pass
-    HiScFails += [username]
+    try:
+        res = download(url).text
+        rows = res.split("\n")[:-1]
+        data = [ [int(x) for x in row.split(",")] for row in rows ]
+        # catch an uncommon(?) bug
+        if data[54][0] != -1 and data[54][1] != -1:
+            return data
+    except:
+        pass
     return []
 
 def getRuneMetrics(username: str):
     """Get RuneMetrics data (in dictionary form)"""
-    global RuMeFails
     url = "https://apps.runescape.com/runemetrics/profile/profile?user=" + username.replace(" ","%20") + "&activities=0"
-    # try a few times, RuneMetrics is quite often unstable...
-    for _ in range(1):
-        try:
-            res = download(url)
-            return res.json()
-        except: 
-            pass
-    RuMeFails += [username]
+    try:
+        res = download(url)
+        return res.json()
+    except: 
+        pass
     return {}
 
 def getUsernamesFromCsv() -> list[str]:
@@ -82,7 +74,6 @@ def calculateEliteLevel(xp: int) -> int:
 usernames = getUsernamesFromCsv()
 
 hiscores_rows = []
-UserFails = []
 HiScFails = []
 RuMeFails = []
 RuinedAcc = []
@@ -90,7 +81,6 @@ RSNChange = []
 RMPrivate = []
 NotRanked = []
 AccBanned = []
-UnknwnErr = []
 print(f"╔══════════════╦════╦══════╦══════╦══════╦════════════╦═════╦═══════╗")
 print(f"║ DISPLAY NAME ║ HP ║ HPXP ║ TOTL ║ VIRT ║  TOTAL XP  ║ CMB ║ SCORE ║")
 print(f"╠══════════════╬════╬══════╬══════╬══════╬════════════╬═════╬═══════╣")
@@ -101,6 +91,7 @@ hiscores_rows.append(hiscoresString.split(','))
 for username in usernames:
 
     success = False
+    skipped = False
     
     HSData = getHiScores(username)
     
@@ -125,7 +116,8 @@ for username in usernames:
         
         # data useable if no missing values
         success = expList.count(-1) == 0
-
+    else:
+        HiScFails += [username]
     # If HiScores failed or is incomplete: use RuneMetrics
     if not success:
         RMData = getRuneMetrics(username)
@@ -140,7 +132,6 @@ for username in usernames:
                 
                 totLvl = RMData["totalskill"]
                 totExp = sum(expList)
-                success = True
                 
             else:
                 if RMData["error"] == "NO_PROFILE":
@@ -153,11 +144,15 @@ for username in usernames:
                     # RuneMetrics set to private
                     AccBanned += [username]
                 else:
-                    # Unknown error
-                    UnknwnErr += [username]
-    
-    if not success:
-        UserFails += [username]
+                    # Unknown error(?)
+                    print(f'UNKNOWN RUNEMETRICS ERROR: {RMDATA["error"]}')
+                    RuMeFails += [username]
+                    skipped = True
+        else:
+            RuMeFails += [username]
+            skipped = True
+
+    if skipped:
         continue
         
     attLvl = lvlList[0]
@@ -213,12 +208,10 @@ for username in usernames:
     hiscoresString = f"{username},{conLvl},{conExp},{totLvl},{totLvlAdj},{virLvl},{virLvlAdj},{totExp},{totExpAdj},{cmbLvl},{cmbLvlAdj},{cmbExpAdj},{RScore},{now}"
     hiscores_rows.append(hiscoresString.split(','))
 print(f"╚══════════════╩════╩══════╩══════╩══════╩════════════╩═════╩═══════╝\n\n")
-NrFails = len(UserFails)
-print(f"Could not get sufficient data for {NrFails} users: {', '.join(UserFails)}\n")
 NrHiScFails = len(HiScFails)
 print(f"HiScore fails: {NrHiScFails}\n")
 NrRuMeFails = len(RuMeFails)
-print(f"RuneMetrics fails: {NrRuMeFails}\n")
+print(f"RuneMetrics fails: {NrRuMeFails} ({', '.join(RuMeFails)})\n")
 NrRuinedAcc = len(RuinedAcc)
 print(f"Accounts Ruined: {NrRuinedAcc} ({', '.join(RuinedAcc)})\n")
 NrNotRanked = len(NotRanked)
