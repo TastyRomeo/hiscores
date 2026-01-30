@@ -1,11 +1,12 @@
 import csv
 import os
+import time
 
 hiscores_old_path = "data/hiscores.csv"
 hiscores_new_path = "data/hiscores-new.csv"
 oldHS = {}
 newHS = {}
-header=[]
+header= []
 
 with open(hiscores_old_path, newline='', encoding='utf-8') as f:
     reader = csv.reader(f)
@@ -25,8 +26,17 @@ with open(hiscores_new_path, newline='', encoding='utf-8') as f:
 
 # Add in missing old data!
 for user in oldHS.keys():
-    if (user not in newHS) or (oldHS[user][:-1] > newHS[user][:-1]):
-        newHS[user] = oldHS[user]
+    if user in newHS:
+        if oldHS[user][:-1] > newHS[user][:-1]:
+            # Somehow previous line is more recent (e.g. due to concurrent updates?)
+            newHS[user] = oldHS[user]
+    else:
+        now = int(time.time())
+        upd = int(oldHS[user][:-1])
+        if now - upd <= 1209600:
+            newHS[user] = oldHS[user]
+        else:
+            print(f"Removing data for user '{user}' since data is >2 weeks old")
 
 # Write back in sorted order
 with open(hiscores_old_path, "w+", newline='', encoding='utf-8') as f:
