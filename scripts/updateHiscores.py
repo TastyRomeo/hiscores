@@ -1,5 +1,6 @@
 import csv
 import requests
+import time
 
 def download(url: str):
     """Download url"""
@@ -205,7 +206,8 @@ for username in usernames:
     virLvlAdj = virLvl - conLvl + 1
 
     print(f"║ {username:<12s} ║ {conLvl:>2} ║ {conExp:>4} ║ {totLvl:>4} ║ {virLvl:>4} ║ {totExp:>10} ║ {cmbLvl:>3} ║ {RScore:>5} ║")
-    hiscoresString = f"{username},{conLvl},{conExp},{totLvl},{totLvlAdj},{virLvl},{virLvlAdj},{totExp},{totExpAdj},{cmbLvl},{cmbLvlAdj},{cmbExpAdj},{RScore}"
+    now = int(time.time())
+    hiscoresString = f"{username},{conLvl},{conExp},{totLvl},{totLvlAdj},{virLvl},{virLvlAdj},{totExp},{totExpAdj},{cmbLvl},{cmbLvlAdj},{cmbExpAdj},{RScore},{now}"
     hiscores_rows.append(hiscoresString.split(','))
 print(f"╚══════════════╩════╩══════╩══════╩══════╩════════════╩═════╩═══════╝\n\n")
 NrFails = len(UserFails)
