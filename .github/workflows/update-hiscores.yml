@@ -20,7 +20,10 @@ jobs:
           mv data/hiscores.csv $RUNNER_TEMP/hiscores.csv
       - uses: actions/checkout@v6
       - run : |
-          mv $RUNNER_TEMP/hiscores.csv data/hiscores.csv
+          mv $RUNNER_TEMP/hiscores.csv data/hiscores-new.csv
+      - name: Merge new hiscores
+        run: |
+          python3 scripts/mergeHiscores.py
       - name: Commit files
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
