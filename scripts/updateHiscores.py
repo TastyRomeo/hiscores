@@ -95,7 +95,7 @@ print(f"╔══════════════╦════╦═══
 print(f"║ DISPLAY NAME ║ HP ║ HPXP ║ TOTL ║ VIRT ║  TOTAL XP  ║ CMB ║ SCORE ║")
 print(f"╠══════════════╬════╬══════╬══════╬══════╬════════════╬═════╬═══════╣")
 
-hiscoresString = "RSN,HPLVL,HPEXP,TOTLVL,TOTLVLADJ,VIRLVL,VIRLVLADJ,TOTEXP,TOTEXPADJ,CMBLVL,CMBEXPADJ,RSCORE,TIME"
+hiscoresString = "RSN,HPLVL,HPEXP,TOTLVL,TOTLVLADJ,VIRLVL,VIRLVLADJ,TOTEXP,TOTEXPADJ,CMBLVL,CMBLVLADJ,CMBEXPADJ,RSCORE,TIME"
 hiscores_rows.append(hiscoresString.split(','))
 
 for username in usernames:
