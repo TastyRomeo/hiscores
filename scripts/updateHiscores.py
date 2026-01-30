@@ -231,9 +231,9 @@ print(f"Not Ranked: {NrNotRanked} ({*NotRanked,})\n\n")
 NrRSNChange = len(RSNChange)
 print(f"RSN Changes: {NrRSNChange} ({*RSNChange,})\n\n")
 NrRMPrivate = len(RMPrivate)
-print(f"RuneMetrics private: {NrRMPrivate} ({*RMPrivate,})\n\n")\n\n")
+print(f"RuneMetrics private: {NrRMPrivate} ({*RMPrivate,})\n\n")
 NrAccBanned = len(AccBanned)
-print(f"Account banned: {NrAccBanned} ({*AccBanned,})\n\n")\n\n")
+print(f"Account banned: {NrAccBanned} ({*AccBanned,})\n\n")
 
 # merge existing + new
 merged = {}
