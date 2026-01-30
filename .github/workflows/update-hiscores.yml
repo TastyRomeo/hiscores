@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          path: newdata
       #- uses: actions/setup-node@v6
       - uses: actions/setup-python@v6
         with:
@@ -17,6 +19,8 @@ jobs:
         run: |
           pip3 install requests
           python3 ./scripts/updateHiscores.py
+      - uses: actions/checkout@v6
+      - run: mv newdata/hiscores.csv data/hiscores.csv
       - name: Commit files
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
