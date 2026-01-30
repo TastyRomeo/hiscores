@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>RS3 Low HP HiScores</title>
     <link rel="shortcut icon" type="image/png" href="img/favicon.png">
-    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.5/css/dataTables.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.3.7/css/dataTables.dataTables.min.css">
     <style>
       html, body {
         margin: 0;
@@ -51,28 +51,12 @@
         color: #7799CC;
       }
     </style>
-    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
-    <script src="https://cdn.datatables.net/2.0.5/js/dataTables.min.js"></script>
+    <script src="https://code.jquery.com/jquery-4.0.0.js"></script>
+    <script src="https://cdn.datatables.net/2.3.7/js/dataTables.min.js"></script>
     <script>
       var table;
       let intFormat = function( data, type, row ) {
         return parseInt(data).toLocaleString('en-GB');
-      };
-      let floatFormat1 = function( data, type, row ) {
-        if ($('input[name="useDecimals"]').is(":checked")) {
-          return parseFloat(data).toLocaleString('en-GB',{minimumFractionDigits:1, maximumFractionDigits:1});
-        }
-        else {
-          return intFormat( data, type, row );
-        }
-      };
-      let floatFormat3 = function( data, type, row ) {
-        if ($('input[name="useDecimals"]').is(":checked")) {
-          return parseFloat(data).toLocaleString('en-GB',{minimumFractionDigits:3, maximumFractionDigits:3});
-        }
-        else {
-          return intFormat( data, type, row );
-        }
       };
       let changeVisibility = function( L ) {
         for (const i in L) {
@@ -84,9 +68,13 @@
         $.get({url:"data/hiscores.csv",cache:false,success:function(data) {
           let csv = [];
           let entries = data.split('\n');
-          entries.pop()
+          entries.shift() // Remove first
           for(let i in entries){
-            csv[i] = entries[i].split(',');
+            row=entries[i]
+            if(row.trim().length == 0){
+               continue;
+            }
+            csv[i] = row.split(',');
           }
           table = $('#hiscoreTable').DataTable({
             orderMulti: false,
@@ -116,7 +104,7 @@
                 orderSequence: ['desc','asc'],
                 orderData: [2],
                 visible: false,
-                render: floatFormat1,
+                render: intFormat,
                 type: 'num-fmt'
               },
               { 
@@ -159,7 +147,7 @@
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
                 orderData: [8,12],
-                render: floatFormat1,
+                render: intFormat,
                 type: 'num-fmt'
               },
               { 
@@ -168,7 +156,7 @@
                 orderSequence: ['desc','asc'],
                 orderData: [8,12],
                 visible: false,
-                render: floatFormat1,
+                render: intFormat,
                 type: 'num-fmt'
               },
               { 
@@ -176,7 +164,7 @@
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
                 orderData: [10,11],
-                render: floatFormat3,
+                render: intFormat,
                 type: 'num-fmt'
               },
               { 
@@ -185,7 +173,7 @@
                 orderSequence: ['desc','asc'],
                 orderData: [10,11],
                 visible: false,
-                render: floatFormat3,
+                render: intFormat,
                 type: 'num-fmt'
               },
               { 
@@ -193,7 +181,7 @@
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
                 visible: false,
-                render: floatFormat1,
+                render: intFormat,
                 type: 'num-fmt'
               },
               { 
@@ -201,13 +189,13 @@
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
                 orderData: [12,8],
-                render: function( data, type, row ) {
-                  if (data.trim().length === 0) {
-                    return "";
-                  } else {
-                    return parseInt(data).toLocaleString('en-GB');
-                  }
-                },
+                render: intFormat,
+                type: 'num-fmt'
+              },
+              { 
+                title: "TimeStamp", // 13. Timestamp
+                className: "dt-body-right dt-head-center",
+                visible: false,
                 type: 'num-fmt'
               }
             ],
@@ -216,9 +204,6 @@
         }});
         $('input[name="showConstitution"]').change(function () {
           changeVisibility([1,2]);
-          if ($('input[name="showConstitution"]').is(":checked")) {
-            1+1;
-          }
         });
         $('input[name="useVirtual"]').change(function () {
           if (!$('input[name="useAdjusted"]').is(":checked")) {
@@ -257,9 +242,9 @@
             table.order([[9==orderNr ? 10 : 9,"desc"]]).draw()
           }
         });
-        $('input[name="useDecimals"]').change(function () {
+        /*$('input[name="useDecimals"]').change(function () {
           table.rows().invalidate();
-        });
+        });*/
       });
     </script>
   </head>
@@ -269,12 +254,12 @@
       <input type="checkbox" id='useVirtual' name="useVirtual" /><label for="useVirtual">Use virtual levels</label><br />
       <input type="checkbox" id='showConstitution' name="showConstitution" /><label for="showConstitution">Show HP level/XP</label><br />
       <input type="checkbox" id='useAdjusted' name="useAdjusted" /><label for="useAdjusted">Show adjusted levels/XP</label><br />
-      <input type="checkbox" id='useDecimals' name="useDecimals" /><label for="useDecimals">Show decimal values</label><br />
+      <!--<input type="checkbox" id='useDecimals' name="useDecimals" /><label for="useDecimals">Show decimal values</label><br />-->
       <div id="tableContainer"><table id="hiscoreTable" class="cell-border hover order-column stripe"></table></div>
       Requirements to be listed:
       <ul>
         <li>HP is at most level 15, i.e. can be reset by Nastroth;</li>
-        <li>Must have at least 1,000,000 Combat XP;</li>
+        <li>Must have at least 100,000 Combat XP;</li>
         <li>All skills except HP must be ranked on the HiScores, or RuneMetrics must be public;</li>
         <li>Username has to be added to the CSV file. You're welcome to <a href="https://github.com/TastyRomeo/hiscores/issues/new" target="_blank">open an issue</a> or <a href="https://github.com/TastyRomeo/hiscores/compare" target="_blank">make a pull request</a> to do so.</li>
       </ul>
