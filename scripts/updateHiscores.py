@@ -76,16 +76,7 @@ def calculateEliteLevel(xp: int) -> int:
         i += 1
     return i
 
-hiscores_path = "data/hiscores.csv"
-existing = {}
 
-with open(hiscores_path, newline='', encoding='utf-8') as f:
-    reader = csv.reader(f)
-    rows = list(reader)
-    if rows:
-        for r in rows:
-            if r:
-                existing[r[0]] = r
 
 usernames = getUsernamesFromCsv()
 
@@ -234,25 +225,8 @@ print(f"RuneMetrics private: {NrRMPrivate} ({', '.join(RMPrivate)})\n")
 NrAccBanned = len(AccBanned)
 print(f"Account banned: {NrAccBanned} ({', '.join(AccBanned)})\n")
 
-# merge existing + new
-merged = {}
-
-# start with the old file unchanged
-for un, line in existing.items():
-    merged[un] = line
-
-# now update with new data
-for row in hiscores_rows:
-    un = row[0]
-    if un in merged:
-        # only replace if changes
-        if merged[un] != row:
-            merged[un] = row
-    else:
-        merged[un] = row
-
-# write back in sorted order
+hiscores_path = "data/hiscores-new.csv"
 with open(hiscores_path, "w+", newline='', encoding='utf-8') as f:
     writer = csv.writer(f)
-    for un in sorted(merged.keys(), key=str.lower):
-        writer.writerow(merged[un])
+    for row in hiscores_rows:
+        writer.writerow(row)
