@@ -11,7 +11,8 @@ with open(hiscores_old_path, newline='', encoding='utf-8') as f:
     reader = csv.reader(f)
     rows = list(reader)
     for r in rows[1:]:
-        oldHS[r[0]] = r
+        if r:
+            oldHS[r[0]] = r
 
 with open(hiscores_new_path, newline='', encoding='utf-8') as f:
     reader = csv.reader(f)
@@ -19,7 +20,8 @@ with open(hiscores_new_path, newline='', encoding='utf-8') as f:
     # Pick header from new version in case of changes to script!
     header = rows[0]
     for r in rows[1:]:
-        newHS[r[0]] = r
+        if r:
+            newHS[r[0]] = r
 
 # Add in missing old data!
 for user in oldHS.keys():
