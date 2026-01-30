@@ -186,13 +186,7 @@
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
                 orderData: [12,8],
-                render: function( data, type, row ) {
-                  if (data.trim().length === 0) {
-                    return "";
-                  } else {
-                    return parseInt(data).toLocaleString('en-GB');
-                  }
-                },
+                render: intFormat,
                 type: 'num-fmt'
               },
               { 
