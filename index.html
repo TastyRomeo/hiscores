@@ -259,7 +259,7 @@
       <h1>RS3 Low HP HiScores</h1>
       <input type="checkbox" id='useVirtual' name="useVirtual" /><label for="useVirtual">Use virtual levels</label><br />
       <input type="checkbox" id='showConstitution' name="showConstitution" /><label for="showConstitution">Show HP level/XP</label><br />
-      <input type="checkbox" id='useAdjusted' name="useAdjusted" /><label for="useAdjusted">Show adjusted levels/XP</label><br />
+      <input type="checkbox" id='useAdjusted' name="useAdjusted" /><label for="useAdjusted">Normalise HP to level 10 and 1154 XP</label><br />
       <!--<input type="checkbox" id='useDecimals' name="useDecimals" /><label for="useDecimals">Show decimal values</label><br />-->
       <div id="tableContainer"><table id="hiscoreTable" class="cell-border hover order-column stripe"></table></div>
       Requirements to be listed:
@@ -271,8 +271,7 @@
       </ul>
       Some details:
       <ul>
-        <li>"Adjusted" means that HP Lvl is set to 10 and HP XP is set to 0;</li>
-        <li>Ranking is always determined by the adjusted values;</li>
+        <li>Ranking is always determined by the normalised values;</li>
         <li>Data is obtained from the RuneScape HiScores by default, with RuneMetrics as backup (which is rather unreliable);</li>
         <li>RuneScore is only available when ranked on the HiScores.</li>
       </ul>
