@@ -134,6 +134,7 @@ for username in usernames:
                 totExp = sum(expList)
                 
             else:
+                skipped = True
                 if RMData["error"] == "NO_PROFILE":
                     # Username changed, probably
                     RSNChange += [username]
@@ -147,7 +148,6 @@ for username in usernames:
                     # Unknown error(?)
                     print(f'UNKNOWN RUNEMETRICS ERROR: {RMDATA["error"]}')
                     RuMeFails += [username]
-                    skipped = True
         else:
             RuMeFails += [username]
             skipped = True
@@ -211,7 +211,7 @@ print(f"╚══════════════╩════╩═══
 NrHiScFails = len(HiScFails)
 print(f"HiScore fails: {NrHiScFails}\n")
 NrRuMeFails = len(RuMeFails)
-print(f"RuneMetrics fails: {NrRuMeFails} ({', '.join(RuMeFails)})\n")
+print(f"RuneMetrics fails: {NrRuMeFails}\n")
 NrRuinedAcc = len(RuinedAcc)
 print(f"Accounts Ruined: {NrRuinedAcc} ({', '.join(RuinedAcc)})\n")
 NrNotRanked = len(NotRanked)
