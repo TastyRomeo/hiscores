@@ -188,7 +188,7 @@ for username in usernames:
         continue;
     
     # Filter out accounts with too few combat exp
-    cmbExpAdj = attExp + strExp + mgcExp + rngExp + necExp + defExp + pryExp + sumExp
+    cmbExpAdj = attExp + strExp + mgcExp + rngExp + necExp + defExp + pryExp + sumExp + 1154
     if cmbExpAdj < 100000:
         NotRanked += [username] 
         continue;
@@ -200,7 +200,7 @@ for username in usernames:
     # Force Constitution level to 10 and xp to 0
     cmbLvlAdj = combatLevel(attLvl, strLvl, mgcLvl, rngLvl, necLvl, defLvl, 10, pryLvl, sumLvl)
     totLvlAdj = totLvl - conLvl + 10
-    totExpAdj = totExp - conExp
+    totExpAdj = totExp - conExp + 1154
     virLvlAdj = virLvl - conLvl + 10
 
     print(f"║ {username:<12s} ║ {conLvl:>2} ║ {conExp:>4} ║ {totLvl:>4} ║ {virLvl:>4} ║ {totExp:>10} ║ {cmbLvl:>3} ║ {RScore:>5} ║")
