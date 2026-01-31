@@ -15,13 +15,9 @@ def getHiScores(username: str):
     try:
         res = download(url).text
         rows = res.split("\n")[:-1]
-        data = [ [int(x) for x in row.split(",")] for row in rows ]
-        # catch an uncommon(?) bug
-        if data[54][0] != -1 and data[54][1] != -1:
-            return data
+        return [ [int(x) for x in row.split(",")] for row in rows ]
     except:
-        pass
-    return []
+        return []
 
 def getRuneMetrics(username: str):
     """Get RuneMetrics data (in dictionary form)"""
@@ -30,8 +26,7 @@ def getRuneMetrics(username: str):
         res = download(url)
         return res.json()
     except: 
-        pass
-    return {}
+        return {}
 
 def getUsernamesFromCsv() -> list[str]:
     """Get usernames from csv file, sorted and with duplicates removed"""
