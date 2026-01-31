@@ -96,6 +96,8 @@ for username in usernames:
     # First try to get data from HiScores
     if HSData:
         RScore = HSData[54][1]
+        if RScore == -1:
+            RScore = ""
 
         totLvl = HSData[0][1]
         totExp = HSData[0][2]
@@ -110,7 +112,7 @@ for username in usernames:
             expList[i] = totExp - sum(expList) - 1 # -1 to correct for subtracting the incorrect experience set as -1
         
         # data useable if no missing values
-        success = expList.count(-1) == 0
+        success = (expList.count(-1) == 0) and (lvlList.count(-1) == 0) and (totLvl != -1) and (totExp != -1)
     else:
         HiScFails += [username]
     # If HiScores failed or is incomplete: use RuneMetrics
