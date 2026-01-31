@@ -218,7 +218,7 @@ print(f"RuneMetrics private: {NrRMPrivate} ({', '.join(RMPrivate)})\n")
 NrAccBanned = len(AccBanned)
 print(f"Account banned: {NrAccBanned} ({', '.join(AccBanned)})\n")
 
-hiscores_path = "data/hiscores.csv"
+hiscores_path = "data/hiscores-new.csv"
 with open(hiscores_path, "w+", newline='', encoding='utf-8') as f:
     writer = csv.writer(f)
     for row in hiscores_rows:
