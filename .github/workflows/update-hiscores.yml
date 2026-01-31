@@ -17,7 +17,7 @@ jobs:
       - name: Generate new HiScores
         run: |
           pip3 install requests
-          python3 scripts/updateHiscores.py
+          python3 -u scripts/updateHiscores.py
       - name: Upload CSV
         uses: actions/upload-artifact@v6
         with:
