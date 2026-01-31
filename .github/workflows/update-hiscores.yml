@@ -21,8 +21,8 @@ jobs:
       - name: Upload CSV
         uses: actions/upload-artifact@v6
         with:
-          name: hiscores.csv
-          path: data/hiscores.csv
+          name: hiscores-new.csv
+          path: data/hiscores-new.csv
 
   merge:
     needs: generate
@@ -33,8 +33,8 @@ jobs:
       - name: Download CSV
         uses: actions/download-artifact@v7
         with:
-          name: hiscores.csv
-          path: data/hiscores-new.csv
+          name: hiscores-new.csv
+          path: data
       - name: Merge HiScores
         run: python3 scripts/mergeHiscores.py
       - name: Commit files
