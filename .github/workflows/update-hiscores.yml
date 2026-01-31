@@ -30,6 +30,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+      - name: Pull updates
+        run: git pull
       - name: Download CSV
         uses: actions/download-artifact@v7
         with:
