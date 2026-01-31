@@ -5,23 +5,38 @@ on:
     - cron: '40 */1 * * *'
  
 jobs:
-  hiscores:
+  generate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Python
+        uses: actions/setup-python@v6
         with:
           python-version: '3.x' 
       - name: Generate new HiScores
         run: |
           pip3 install requests
           python3 scripts/updateHiscores.py
-          mv data/hiscores.csv $RUNNER_TEMP/hiscores.csv
-      - uses: actions/checkout@v6
+      - name: Upload CSV
+        uses: actions/upload-artifact@v6
+        with:
+          name: hiscores.csv
+          path: data/hiscores.csv
+
+  merge:
+    needs: generate
+    runs-on: ubuntu-slim
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Download CSV
+        uses: actions/download-artifact@v7
+        with:
+          name: hiscores.csv
+          path: data/hiscores-new.csv
       - name: Merge HiScores
-        run : |
-          mv $RUNNER_TEMP/hiscores.csv data/hiscores-new.csv
-          python3 scripts/mergeHiscores.py
+        run: python3 scripts/mergeHiscores.py
       - name: Commit files
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
