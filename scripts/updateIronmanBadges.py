@@ -1,16 +1,16 @@
 import csv
-import time
 from collections import Counter
 from pathlib import Path
 
-from mergeHiscores import SCORES_PATH, read_scores
 from updateHiscores import (
     MAX_CONSECUTIVE_FAILURES,
+    SCORES_PATH,
     DataUnavailable,
     RateLimited,
     create_session,
     get_hiscores,
     parse_skills,
+    read_scores,
     read_usernames,
     username_key,
 )
@@ -18,22 +18,13 @@ from updateHiscores import (
 
 BADGES_PATH = Path("data/ironman-badges.csv")
 BADGE_FIELDS = ("RSN", "BADGE")
-MAX_SCORE_AGE = 2 * 60 * 60
 MODE_URLS = (
     ("hardcore", "https://secure.runescape.com/m=hiscore_hardcore_ironman/index_lite.json"),
     ("ironman", "https://secure.runescape.com/m=hiscore_ironman/index_lite.json"),
 )
 
 
-def matches_cached_score(stats, score):
-    total_level, total_xp, skills = stats
-    hp_level, hp_xp = skills["Hitpoints"]
-    return (total_level, total_xp, hp_level, hp_xp) == tuple(
-        int(score[field]) for field in ("TOTLVL", "TOTEXP", "HPLVL", "HPEXP")
-    )
-
-
-def find_badge(session, username, recent_score, previous_badge):
+def find_badge(session, username):
     standard = None
     for badge, url in MODE_URLS:
         payload = get_hiscores(session, username, url)
@@ -49,8 +40,7 @@ def find_badge(session, username, recent_score, previous_badge):
             raise DataUnavailable(f"Incomplete {badge} skill record")
 
         if standard is None:
-            if recent_score is not None and matches_cached_score(stats, recent_score):
-                return badge
+            # Mode scores can freeze when a player loses eligibility.
             live = get_hiscores(session, username)
             if live is None:
                 return None
@@ -60,10 +50,6 @@ def find_badge(session, username, recent_score, previous_badge):
         if stats == standard:
             return badge
 
-    if previous_badge and recent_score is None and standard is None:
-        # Confirm standard Hiscores when clearing a badge without a recent score.
-        if get_hiscores(session, username) is None:
-            print(f"{username}: no standard Hiscores record")
     return None
 
 
@@ -84,17 +70,14 @@ def main():
     counts = Counter()
     changes = 0
     consecutive_failures = 0
-    now = int(time.time())
 
     with create_session() as session:
         for index, username in enumerate(candidates, start=1):
             key = username_key(username)
-            score = scores[key]
             progress = f"[{index:,}/{total:,}] {username}"
             previous_badge = old_badges.get(key)
-            recent_score = score if 0 <= now - int(score["TIME"]) <= MAX_SCORE_AGE else None
             try:
-                badge = find_badge(session, username, recent_score, previous_badge)
+                badge = find_badge(session, username)
             except RateLimited as error:
                 print(f"{progress}: rate limited ({error})", flush=True)
                 raise SystemExit(f"Keeping the previous badges. {error}") from error

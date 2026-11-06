@@ -30,16 +30,8 @@ jobs:
       - name: Refresh HiScores
         run: |
           python3 -m pip install requests
-          python3 -u scripts/updateHiscores.py
-      - name: Merge HiScores
-        env:
-          REFRESH_QUEST_POINTS: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == '40 3 * * *' }}
-        run: |
-          if [[ "$REFRESH_QUEST_POINTS" == "true" ]]; then
-            python3 -u scripts/mergeHiscores.py --refresh-quest-points
-          else
-            python3 -u scripts/mergeHiscores.py
-          fi
+          python3 -u scripts/updateHiscores.py \
+            ${{ (github.event_name == 'workflow_dispatch' || github.event.schedule == '40 3 * * *') && '--refresh-quest-points' || '' }}
       - name: Commit files
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
