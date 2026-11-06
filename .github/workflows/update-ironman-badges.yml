@@ -1,0 +1,36 @@
+name: Update Ironman badges
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '20 5 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hiscores-data-${{ github.ref }}
+  queue: max
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout the latest data
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+      - name: Check Ironman and Hardcore Hiscores
+        run: |
+          python3 -m pip install requests
+          python3 -u scripts/updateIronmanBadges.py
+      - name: Commit badges
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: Update Ironman badges
+          file_pattern: data/ironman-badges.csv

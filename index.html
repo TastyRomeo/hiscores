@@ -2,9 +2,10 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>RS3 Low HP HiScores</title>
     <link rel="shortcut icon" type="image/png" href="img/favicon.png">
-    <link rel="stylesheet" href="https://cdn.datatables.net/2.3.7/css/dataTables.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/3.1.5/css/dataTables.dataTables.min.css">
     <style>
       html, body {
         margin: 0;
@@ -16,14 +17,15 @@
       }
       #page {
         background-color: #34353f;
-        width: 1100px;
+        max-width: 1100px;
         margin: 0 auto 0 auto;
         min-height: calc(100vh - 10px);
         padding: 5px 15px 5px 15px;
       }
       #tableContainer {
-        width: 1000px;
+        max-width: 1000px;
         margin: 25px auto 25px auto;
+        overflow-x: auto;
       }
       table.dataTable td,th {
         font-size: small;
@@ -47,16 +49,33 @@
         min-width: 142px;
         padding: 10px !important;
       }
+      .account-badge {
+        display: inline-block;
+        margin-inline-start: 0.5em;
+        padding: 0.1em 0.45em;
+        border: 1px solid #b5b7c8;
+        border-radius: 0.4em;
+        font: 600 0.75rem/1.2 system-ui, sans-serif;
+        white-space: nowrap;
+      }
+      .account-badge-hardcore {
+        color: #ffbcbc;
+        border-color: #ff9f9f;
+      }
       a {
         color: #7799CC;
       }
     </style>
-    <script src="https://code.jquery.com/jquery-4.0.0.js"></script>
-    <script src="https://cdn.datatables.net/2.3.7/js/dataTables.min.js"></script>
+    <script src="https://code.jquery.com/jquery-4.0.0.min.js"></script>
+    <script src="https://cdn.datatables.net/3.1.5/js/dataTables.min.js"></script>
     <script>
       var table;
-      let intFormat = function( data, type, row ) {
-        return parseInt(data).toLocaleString('en-GB');
+      let intFormat = function(data, type) {
+        if (!data?.trim()) {
+          return type === 'sort' ? -1 : '';
+        }
+        const value = Number(data);
+        return type === 'sort' ? value : value.toLocaleString('en-GB');
       };
       let changeVisibility = function( L ) {
         for (const i in L) {
@@ -64,18 +83,35 @@
           table.column(j).visible(!table.column(j).visible());
         }
       }
+      function parseCsv(data) {
+        const [header, ...entries] = data.split(/\r?\n/);
+        const fields = header.split(',');
+        return entries.filter(entry => entry.trim()).map(entry => {
+          const values = entry.split(',');
+          return Object.fromEntries(fields.map((field, index) => [field, values[index]]));
+        });
+      }
+      function playerKey(name) {
+        return name.replace(/[_\u00a0]/g, ' ').trim().toLowerCase();
+      }
       $(function(){
-        $.get({url:"data/hiscores.csv",cache:false,success:function(data) {
-          let csv = [];
-          let entries = data.split('\n');
-          entries.shift() // Remove first
-          for(let i in entries){
-            row=entries[i]
-            if(row.trim().length == 0){
-               continue;
+        const badgeLabels = new Map([
+          ['ironman', 'Ironman'],
+          ['hardcore', 'Hardcore Ironman']
+        ]);
+        const badges = new Map();
+        const nameText = DataTable.render.text();
+        $.get({url: 'data/ironman-badges.csv', cache: false, dataType: 'text'}).done(data => {
+          for (const {RSN, BADGE} of parseCsv(data)) {
+            if (RSN && badgeLabels.has(BADGE)) {
+              badges.set(playerKey(RSN), BADGE);
             }
-            csv[i] = row.split(',');
           }
+          if (table && badges.size) {
+            table.rows().invalidate().draw(false);
+          }
+        });
+        $.get({url:"data/hiscores.csv",cache:false,success:function(data) {
           table = $('#hiscoreTable').DataTable({
             orderMulti: false,
             autoWidth: false,
@@ -87,11 +123,28 @@
             columns: [
               { 
                 title: "Display Name", // 0. Display Name
+                data: 'RSN',
                 className: "dt-body-left dt-head-center",
+                render: {
+                  display: function(name) {
+                    const badgeType = badges.get(playerKey(name));
+                    if (!badgeType) {
+                      return nameText.display(name);
+                    }
+                    const badge = document.createElement('span');
+                    badge.className = `account-badge account-badge-${badgeType}`;
+                    badge.textContent = badgeLabels.get(badgeType);
+                    const display = document.createElement('span');
+                    display.append(name, ' ', badge);
+                    return display;
+                  },
+                  filter: nameText.filter
+                },
                 type: 'string'
               },
               { 
                 title: "HP Lvl", // 1. HP Lvl
+                data: 'HPLVL',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
                 orderData: [2],
@@ -100,6 +153,7 @@
               },
               { 
                 title: "HP XP", // 2. HP XP
+                data: 'HPEXP',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
                 orderData: [2],
@@ -109,6 +163,7 @@
               },
               { 
                 title: "Total Lvl", // 3. Total Lvl
+                data: 'TOTLVL',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
                 orderData: [4,8,12],
@@ -117,6 +172,7 @@
               },
               { 
                 title: "Total Lvl", // 4. Total Lvl - HP Lvl
+                data: 'TOTLVLADJ',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
                 orderData: [4,8,12],
@@ -126,6 +182,7 @@
               },
               { 
                 title: "Total Lvl", // 5. Virtual Total Lvl
+                data: 'VIRLVL',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
                 orderData: [6,8,12],
@@ -135,6 +192,7 @@
               },
               { 
                 title: "Total Lvl", // 6. Virtual Total Lvl - HP Lvl
+                data: 'VIRLVLADJ',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
                 orderData: [6,8,12],
@@ -144,6 +202,7 @@
               },
               { 
                 title: "Total XP", // 7. Total XP
+                data: 'TOTEXP',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
                 orderData: [8,12],
@@ -152,6 +211,7 @@
               },
               { 
                 title: "Total XP", // 8. Total XP - HP XP
+                data: 'TOTEXPADJ',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
                 orderData: [8,12],
@@ -161,6 +221,7 @@
               },
               { 
                 title: "Combat Lvl", // 9. Combat Lvl
+                data: 'CMBLVL',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
                 orderData: [10,11],
@@ -169,6 +230,7 @@
               },
               { 
                 title: "Combat Lvl", // 10. Combat Lvl adjusted for HP
+                data: 'CMBLVLADJ',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
                 orderData: [10,11],
@@ -178,6 +240,7 @@
               },
               { 
                 title: "Combat XP", // 11. Combat XP adjusted for HP
+                data: 'CMBEXPADJ',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
                 visible: false,
@@ -186,26 +249,30 @@
               },
               { 
                 title: "RuneScore", // 12. RuneScore
+                data: 'RSCORE',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
                 orderData: [12,8],
-                render: function( data, type, row ) {
-                  if (data.trim().length === 0) {
-                    return "";
-                  } else {
-                    return parseInt(data).toLocaleString('en-GB');
-                  }
-                },
+                render: intFormat,
                 type: 'num-fmt'
               },
-              { 
-                title: "TimeStamp", // 13. Timestamp
+              {
+                title: "Quest Points", // 13. Quest Points
+                data: 'QPOINTS',
+                className: "dt-body-right dt-head-center",
+                orderSequence: ['desc','asc'],
+                render: intFormat,
+                type: 'num-fmt'
+              },
+              {
+                title: "TimeStamp", // 14. Timestamp
+                data: 'TIME',
                 className: "dt-body-right dt-head-center",
                 visible: false,
                 type: 'num-fmt'
               }
             ],
-            data: csv
+            data: parseCsv(data)
           });
         }});
         $('input[name="showConstitution"]').change(function () {
@@ -266,14 +333,15 @@
       <ul>
         <li>HP is at most level 15, i.e. can be reset by Nastroth;</li>
         <li>Must have at least 100,000 Combat XP;</li>
-        <li>All skills except HP must be ranked on the HiScores, or RuneMetrics must be public;</li>
-        <li>Username has to be added to the CSV file. You're welcome to <a href="https://github.com/TastyRomeo/hiscores/issues/new" target="_blank">open an issue</a> or <a href="https://github.com/TastyRomeo/hiscores/compare" target="_blank">make a pull request</a> to do so.</li>
+        <li>Hiscores must provide enough skill data to calculate the ranking;</li>
+        <li>Your username must be on the tracked roster. To suggest an addition, <a href="https://github.com/TastyRomeo/hiscores/issues/new" target="_blank">open an issue</a> or <a href="https://github.com/TastyRomeo/hiscores/compare" target="_blank">make a pull request</a>.</li>
       </ul>
       Some details:
       <ul>
         <li>Ranking is always determined by the normalised values;</li>
-        <li>Data is obtained from the RuneScape HiScores by default, with RuneMetrics as backup (which is rather unreliable);</li>
-        <li>RuneScore is only available when ranked on the HiScores.</li>
+        <li>Skills and RuneScore come from the RuneScape Hiscores;</li>
+        <li>Quest Points come from the Adventurer's Log. A blank cell means the data is unavailable;</li>
+        <li>Ironman and Hardcore Ironman badges reflect a daily comparison with the standard Hiscores. A matching record can remain after a player changes modes.</li>
       </ul>
     </div>
   </body>

@@ -1,48 +1,46 @@
 name: Update HiScores
+
 on:
   workflow_dispatch:
   schedule:
-    - cron: '40 */1 * * *'
- 
-jobs:
-  generate:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Setup Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.x' 
-      - name: Generate new HiScores
-        run: |
-          pip3 install requests
-          python3 -u scripts/updateHiscores.py
-      - name: Upload CSV
-        uses: actions/upload-artifact@v6
-        with:
-          name: hiscores-new.csv
-          path: data/hiscores-new.csv
+    - cron: '40 3 * * *'
+    - cron: '40 0-2,4-23 * * *'
 
-  merge:
-    needs: generate
-    runs-on: ubuntu-slim
+permissions:
+  contents: write
+
+concurrency:
+  group: hiscores-data-${{ github.ref }}
+  queue: max
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Pull updates
-        run: git pull
-      - name: Download CSV
-        uses: actions/download-artifact@v7
+      - name: Checkout the latest data
+        uses: actions/checkout@v7
         with:
-          name: hiscores-new.csv
-          path: data
+          ref: ${{ github.ref_name }}
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+      - name: Refresh HiScores
+        run: |
+          python3 -m pip install requests
+          python3 -u scripts/updateHiscores.py
       - name: Merge HiScores
-        run: python3 scripts/mergeHiscores.py
+        env:
+          REFRESH_QUEST_POINTS: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == '40 3 * * *' }}
+        run: |
+          if [[ "$REFRESH_QUEST_POINTS" == "true" ]]; then
+            python3 -u scripts/mergeHiscores.py --refresh-quest-points
+          else
+            python3 -u scripts/mergeHiscores.py
+          fi
       - name: Commit files
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: 'Update hiscores.csv'
           file_pattern: 'data/hiscores.csv'
-          skip_fetch: false
-          skip_checkout: false

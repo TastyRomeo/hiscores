@@ -1,48 +1,97 @@
+import argparse
 import csv
-import os
-import time
+from pathlib import Path
 
-hiscores_old_path = "data/hiscores.csv"
-hiscores_new_path = "data/hiscores-new.csv"
-oldHS = {}
-newHS = {}
-header= []
+from updateHiscores import (
+    FIELDS,
+    MAX_CONSECUTIVE_FAILURES,
+    NEW_SCORES_PATH,
+    DataUnavailable,
+    RateLimited,
+    create_session,
+    get_quest_points,
+    read_usernames,
+    username_key,
+)
 
-with open(hiscores_old_path, newline='', encoding='utf-8') as f:
-    reader = csv.reader(f)
-    rows = list(reader)
-    for r in rows[1:]:
-        if r:
-            oldHS[r[0]] = r
 
-with open(hiscores_new_path, newline='', encoding='utf-8') as f:
-    reader = csv.reader(f)
-    rows = list(reader)
-    # Pick header from new version in case of changes to script!
-    header = rows[0]
-    for r in rows[1:]:
-        if r:
-            newHS[r[0]] = r
+SCORES_PATH = Path("data/hiscores.csv")
 
-# Add in missing old data!
-for user in oldHS.keys():
-    if user in newHS:
-        if oldHS[user][-1] > newHS[user][-1]:
-            # Somehow previous line is more recent (e.g. due to concurrent updates?)
-            newHS[user] = oldHS[user]
-    else:
-        now = int(time.time())
-        upd = int(oldHS[user][-1])
-        if now - upd <= 1209600:
-            newHS[user] = oldHS[user]
+
+def read_scores(path):
+    with path.open(newline="", encoding="utf-8") as file:
+        reader = csv.DictReader(file)
+        rows = {}
+        for row in reader:
+            key = username_key(row["RSN"])
+            if key not in rows or int(row["TIME"]) >= int(rows[key]["TIME"]):
+                rows[key] = row
+        return rows, reader.fieldnames
+
+
+def merge_scores(old_scores, new_scores, usernames):
+    rows = []
+    for name in usernames:
+        key = username_key(name)
+        old = old_scores.get(key)
+        new = new_scores.get(key)
+        if old is None and new is None:
+            continue
+        if new is None or (old is not None and int(old["TIME"]) > int(new["TIME"])):
+            score = dict(old)
         else:
-            print(f"Removing data for user '{user}' since data is >2 weeks old")
+            score = dict(new)
+        score["RSN"] = name
+        if score.get("QPOINTS") in (None, "") and old is not None:
+            score["QPOINTS"] = old.get("QPOINTS", "")
+        rows.append(score)
+    return rows
 
-# Write back in sorted order
-with open(hiscores_old_path, "w+", newline='', encoding='utf-8') as f:
-    writer = csv.writer(f)
-    writer.writerow(header)
-    for user in sorted(newHS.keys(), key=str.lower):
-        writer.writerow(newHS[user])
 
-os.remove(hiscores_new_path)
+def refresh_quest_points(rows):
+    counts = {"updated": 0, "no public data": 0, "unavailable": 0}
+    consecutive_failures = 0
+
+    with create_session() as session:
+        for row in rows:
+            try:
+                points = get_quest_points(session, row["RSN"])
+            except DataUnavailable as error:
+                counts["unavailable"] += 1
+                consecutive_failures += 1
+                print(f"{row['RSN']}: {error}")
+                if (isinstance(error, RateLimited)
+                        or consecutive_failures >= MAX_CONSECUTIVE_FAILURES):
+                    print("Stopping the Quest Points refresh. Keeping cached values for unchecked players.")
+                    break
+                continue
+            consecutive_failures = 0
+            row["QPOINTS"] = points
+            counts["no public data" if points is None else "updated"] += 1
+
+    print("Quest Points " + ", ".join(f"{label}: {count}" for label, count in counts.items()))
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Merge new scores into the leaderboard.")
+    parser.add_argument("--refresh-quest-points", action="store_true",
+                        help="Fetch Quest Points for all published scores.")
+    args = parser.parse_args()
+
+    old, old_columns = read_scores(SCORES_PATH)
+    new, _ = read_scores(NEW_SCORES_PATH)
+    rows = merge_scores(old, new, read_usernames())
+    if args.refresh_quest_points or "QPOINTS" not in old_columns:
+        refresh_quest_points(rows)
+
+    temporary = SCORES_PATH.with_suffix(".tmp")
+    with temporary.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=FIELDS)
+        writer.writeheader()
+        writer.writerows(rows)
+    temporary.replace(SCORES_PATH)
+    NEW_SCORES_PATH.unlink()
+
+
+if __name__ == "__main__":
+    main()
