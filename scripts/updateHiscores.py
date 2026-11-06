@@ -263,24 +263,40 @@ def check_player(session, username):
 
 
 def main():
+    usernames = read_usernames()
+    total = len(usernames)
     rows = []
     counts = Counter()
     consecutive_failures = 0
 
+    print(f"Checking {total:,} players on Hiscores.", flush=True)
     with create_session() as session:
-        for username in read_usernames():
+        for index, username in enumerate(usernames, start=1):
             result = check_player(session, username)
             counts[result.status] += 1
-            if result.row is not None:
-                rows.append(result.row)
+            progress = f"[{index:,}/{total:,}] {username}"
             if result.status == "unavailable":
                 consecutive_failures += 1
-                print(f"{username}: {result.error}")
+                print(f"{progress} | unavailable ({result.error})", flush=True)
                 if (isinstance(result.error, RateLimited)
                         or consecutive_failures >= MAX_CONSECUTIVE_FAILURES):
                     raise SystemExit("Stopping the refresh because Index Lite is unavailable.")
-            else:
-                consecutive_failures = 0
+                continue
+
+            consecutive_failures = 0
+            row = result.row
+            if row is None:
+                print(f"{progress} | {result.status.replace('_', ' ')}", flush=True)
+                continue
+
+            rows.append(row)
+            print(
+                f"{progress} | HP {row['HPLVL']} ({row['HPEXP']:,} XP)"
+                f" | Total level {row['TOTLVL']:,} | Virtual level {row['VIRLVL']:,}"
+                f" | Total XP {row['TOTEXP']:,} | Combat {row['CMBLVL']}"
+                f" | RuneScore {row['RSCORE']}",
+                flush=True,
+            )
 
     print(", ".join(f"{status}: {count}" for status, count in sorted(counts.items())))
     if not rows:

@@ -56,22 +56,31 @@ def player_status(session, name):
     return result.status
 
 
+def log_check(phase, position, total, name, status):
+    if position in (1, total) or position % 25 == 0 or status in {"eligible", "unavailable"}:
+        print(f"{phase} [{position}/{total}] {name!r}: {status.replace('_', ' ')}")
+
+
 def discover(session, clans_path, active, state, limit):
     if not limit:
+        print("Clan discovery is disabled.")
         return []
 
     candidates = {}
-    for line in clans_path.read_text(encoding="utf-8").splitlines():
-        clan = line.strip()
-        if not clan or clan.startswith("#"):
-            continue
+    lines = clans_path.read_text(encoding="utf-8").splitlines()
+    clans = [clan for clan in map(str.strip, lines) if clan and not clan.startswith("#")]
+    print(f"Scanning {len(clans)} configured clans")
+    for position, clan in enumerate(clans, start=1):
+        progress = f"Clan scan [{position}/{len(clans)}] {clan!r}"
         try:
-            for name in clan_members(session, clan):
+            members = clan_members(session, clan)
+            for name in members:
                 candidates.setdefault(username_key(name), name)
+            print(f"{progress}: {len(members)} members passed the clan XP filter")
         except RateLimited:
             raise
         except (DataUnavailable, ValueError) as exc:
-            print(f"Could not read clan {clan!r} ({exc})")
+            print(f"{progress}: could not read roster ({exc})")
 
     keys = sorted(candidates.keys() - active.keys())
     offset = bisect_right(keys, state["discovery_cursor"])
@@ -80,9 +89,10 @@ def discover(session, clans_path, active, state, limit):
 
     additions = []
     unavailable = 0
-    for key in selected:
+    for position, key in enumerate(selected, start=1):
         name = candidates[key]
         status = player_status(session, name)
+        log_check("Clan candidates", position, len(selected), name, status)
         state["discovery_cursor"] = key
         unavailable = unavailable + 1 if status == "unavailable" else 0
         if unavailable == 3:
@@ -104,12 +114,15 @@ def check_missing(session, active, score_times, missing, now, inactive_days):
             del missing[key]
 
     if not stale:
+        print("All active usernames have recent scores.")
         return []
 
     # Known accounts distinguish player-specific failures from an endpoint-wide failure.
     controls = sorted(active.keys() & score_times.keys(), key=lambda key: (-score_times[key], key))[:3]
+    print(f"Checking Hiscores health against {len(controls)} recently scored usernames")
     results = {key: player_status(session, active[key]) for key in controls}
     eligible_controls = sum(status == "eligible" for status in results.values())
+    print(f"Hiscores health check: {eligible_controls}/{len(controls)} returned eligible scores")
     if not controls or eligible_controls < min(2, len(controls)):
         print("Skipping retirement checks because the Hiscores health check failed")
         return []
@@ -117,10 +130,11 @@ def check_missing(session, active, score_times, missing, now, inactive_days):
     print(f"Checking {len(stale)} active usernames without a recent score")
     retirements = []
     unavailable = 0
-    for key in stale:
+    for position, key in enumerate(stale, start=1):
         status = results.get(key)
         if status is None:
             status = player_status(session, active[key])
+        log_check("Active usernames", position, len(stale), active[key], status)
 
         unavailable = unavailable + 1 if status == "unavailable" else 0
         if status not in INVALID_PLAYER_RESULTS:
@@ -176,6 +190,8 @@ def maintain(data_dir, inactive_days, discovery_limit, dry_run):
     archived = {username_key(row["RSN"]) for row in archive}
     now = int(time.time())
 
+    mode = "Dry run" if dry_run else "Roster maintenance"
+    print(f"{mode}: {len(active)} active usernames, {inactive_days}-day retirement grace period")
     with create_session() as session:
         retirements = check_missing(session, active, score_times, state["missing"], now, inactive_days)
         additions = discover(session, data_dir / "clans.txt", active, state, discovery_limit)
@@ -184,7 +200,8 @@ def maintain(data_dir, inactive_days, discovery_limit, dry_run):
     for key, reason in retirements:
         name = active.pop(key)
         retired_keys.add(key)
-        print(f"Retiring {name!r} ({reason})")
+        action = "Would retire" if dry_run else "Retiring"
+        print(f"{action} {name!r} ({reason.replace('_', ' ')})")
         archive.append({
             "RSN": name,
             "REMOVED_AT": utc_timestamp(now),
@@ -195,10 +212,13 @@ def maintain(data_dir, inactive_days, discovery_limit, dry_run):
     for name in additions:
         key = username_key(name)
         active[key] = name
-        action = "Restoring" if key in archived else "Adding"
+        if key in archived:
+            action = "Would restore" if dry_run else "Restoring"
+        else:
+            action = "Would add" if dry_run else "Adding"
         print(f"{action} {name!r}")
 
-    print(f"{len(additions)} additions and {len(retirements)} retirements")
+    print(f"Roster changes: add or restore {len(additions)}, retire {len(retirements)}")
     if dry_run:
         print("Dry run complete")
         return

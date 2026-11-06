@@ -51,15 +51,18 @@ def merge_scores(old_scores, new_scores, usernames):
 def refresh_quest_points(rows):
     counts = {"updated": 0, "no public data": 0, "unavailable": 0}
     consecutive_failures = 0
+    total = len(rows)
 
+    print(f"Checking Quest Points for {total:,} published players.", flush=True)
     with create_session() as session:
-        for row in rows:
+        for index, row in enumerate(rows, start=1):
+            progress = f"[{index:,}/{total:,}] {row['RSN']}"
             try:
                 points = get_quest_points(session, row["RSN"])
             except DataUnavailable as error:
                 counts["unavailable"] += 1
                 consecutive_failures += 1
-                print(f"{row['RSN']}: {error}")
+                print(f"{progress} | unavailable ({error})", flush=True)
                 if (isinstance(error, RateLimited)
                         or consecutive_failures >= MAX_CONSECUTIVE_FAILURES):
                     print("Stopping the Quest Points refresh. Keeping cached values for unchecked players.")
@@ -68,6 +71,8 @@ def refresh_quest_points(rows):
             consecutive_failures = 0
             row["QPOINTS"] = points
             counts["no public data" if points is None else "updated"] += 1
+            result = "no public data" if points is None else f"{points} QP"
+            print(f"{progress} | {result}", flush=True)
 
     print("Quest Points " + ", ".join(f"{label}: {count}" for label, count in counts.items()))
 
@@ -91,6 +96,7 @@ def main():
         writer.writerows(rows)
     temporary.replace(SCORES_PATH)
     NEW_SCORES_PATH.unlink()
+    print(f"Merged {len(new):,} refreshed scores into {len(rows):,} published rows.")
 
 
 if __name__ == "__main__":

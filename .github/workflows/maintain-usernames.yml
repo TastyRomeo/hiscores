@@ -20,13 +20,14 @@ concurrency:
 
 jobs:
   maintain:
+    if: github.ref_type == 'branch'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.ref }}
       - name: Setup Python
         uses: actions/setup-python@v7
         with:

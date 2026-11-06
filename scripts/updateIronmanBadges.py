@@ -75,33 +75,45 @@ def read_badges():
 def main():
     scores, _ = read_scores(SCORES_PATH)
     old_badges = read_badges()
+    usernames = read_usernames()
+    candidates = [username for username in usernames if username_key(username) in scores]
+    total = len(candidates)
+    print(f"Checking Ironman badges for {total:,} players with scores "
+          f"({len(usernames) - total:,} without scores).", flush=True)
     rows = []
     counts = Counter()
+    changes = 0
     consecutive_failures = 0
     now = int(time.time())
 
     with create_session() as session:
-        for username in read_usernames():
+        for index, username in enumerate(candidates, start=1):
             key = username_key(username)
-            score = scores.get(key)
-            if score is None:
-                continue
-
+            score = scores[key]
+            progress = f"[{index:,}/{total:,}] {username}"
             previous_badge = old_badges.get(key)
             recent_score = score if 0 <= now - int(score["TIME"]) <= MAX_SCORE_AGE else None
             try:
                 badge = find_badge(session, username, recent_score, previous_badge)
             except RateLimited as error:
+                print(f"{progress}: rate limited ({error})", flush=True)
                 raise SystemExit(f"Keeping the previous badges. {error}") from error
             except DataUnavailable as error:
                 consecutive_failures += 1
                 counts["unavailable"] += 1
-                print(f"{username}: {error}")
+                print(f"{progress}: unavailable ({error}), keeping {previous_badge or 'no badge'}",
+                      flush=True)
                 if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
                     raise SystemExit("Keeping the previous badges because Index Lite is unavailable.")
                 badge = previous_badge
             else:
                 consecutive_failures = 0
+                if badge != previous_badge:
+                    changes += 1
+                    print(f"{progress}: {previous_badge or 'no badge'} -> {badge or 'no badge'}",
+                          flush=True)
+                elif index in (1, total) or index % 25 == 0:
+                    print(f"{progress}: {badge or 'no badge'}", flush=True)
 
             counts[badge or "no badge"] += 1
             if badge:
@@ -114,7 +126,10 @@ def main():
         writer.writerows(rows)
     temporary.replace(BADGES_PATH)
 
-    print(", ".join(f"{label}: {count}" for label, count in sorted(counts.items())))
+    print(f"Finished {total:,} checks with {changes:,} badge changes. Wrote {len(rows):,} badges.",
+          flush=True)
+    if counts:
+        print(", ".join(f"{label}: {count}" for label, count in sorted(counts.items())), flush=True)
 
 
 if __name__ == "__main__":
