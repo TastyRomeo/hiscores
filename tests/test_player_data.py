@@ -1,7 +1,9 @@
 import contextlib
 import copy
+import csv
 import io
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -25,6 +27,25 @@ def response(status, payload):
 
 
 class PlayerDataTests(unittest.TestCase):
+    def run_refresh(self, usernames, old_scores, new_scores, daily_payload=None):
+        with tempfile.TemporaryDirectory() as temporary:
+            scores_path = Path(temporary) / "hiscores.csv"
+            usernames_path = Path(temporary) / "usernames.csv"
+            usernames_path.write_text("".join(name + "\n" for name in usernames))
+            args = ["updateHiscores.py"] + (["--refresh-quest-points"] if daily_payload else [])
+            with patch.object(hiscores, "read_usernames", return_value=usernames), \
+                 patch.object(hiscores, "read_scores", return_value=(old_scores, hiscores.FIELDS)), \
+                 patch.object(hiscores, "create_session", return_value=contextlib.nullcontext(object())), \
+                 patch.object(hiscores, "refresh_scores", return_value=new_scores), \
+                 patch.object(hiscores, "get_player_data", return_value=daily_payload), \
+                 patch.object(hiscores, "SCORES_PATH", scores_path), \
+                 patch.object(hiscores, "USERNAMES_PATH", usernames_path), \
+                 patch.object(sys, "argv", args), \
+                 contextlib.redirect_stdout(io.StringIO()):
+                hiscores.main()
+            with scores_path.open(newline="") as file:
+                return usernames_path.read_text().splitlines(), list(csv.DictReader(file))
+
     def test_request_combines_skills_and_quests_and_encodes_name(self):
         session = object()
         with patch.object(hiscores, "request", return_value=response(200, player_data("Two Names"))) as request:
@@ -70,6 +91,26 @@ class PlayerDataTests(unittest.TestCase):
         with patch.object(hiscores, "get_hiscores", return_value=legacy), \
              patch.object(hiscores, "get_player_data", return_value=player_data()):
             self.assertEqual(hiscores.check_player(object(), "Player").status, "eligible")
+
+    def test_missing_hiscores_fields_use_canonical_player_data(self):
+        with patch.object(hiscores, "get_hiscores", return_value={"skills": []}), \
+             patch.object(hiscores, "get_player_data", return_value=player_data("Player-Name")):
+            result = hiscores.check_player(object(), "player name")
+        self.assertEqual(result.status, "eligible")
+        self.assertEqual(result.row["RSN"], "Player-Name")
+
+    def test_missing_fields_and_unavailable_backup_remain_unavailable(self):
+        with patch.object(hiscores, "get_hiscores", return_value={"skills": []}), \
+             patch.object(hiscores, "get_player_data", return_value=None):
+            result = hiscores.check_player(object(), "Player")
+        self.assertEqual(result.status, "unavailable")
+        self.assertIsInstance(result.error, hiscores.DataUnavailable)
+
+    def test_hiscores_service_errors_preserve_failure_handling(self):
+        with patch.object(hiscores, "get_hiscores", side_effect=hiscores.DataUnavailable("500")), \
+             patch.object(hiscores, "get_player_data") as backup:
+            self.assertEqual(hiscores.check_player(object(), "Player").status, "unavailable")
+        backup.assert_not_called()
 
     def test_score_and_quest_phases_share_one_combined_request(self):
         cache = {}
@@ -118,6 +159,24 @@ class PlayerDataTests(unittest.TestCase):
         self.assertEqual(row["RSCORE"], "73")
         self.assertEqual(row["QPOINTS"], 42)
 
+    def test_canonical_name_is_corrected_even_when_stats_are_newer(self):
+        row = {"RSN": "player name", "QPOINTS": "0", "TOTEXP": "200000", "TIME": "123"}
+        with patch.object(hiscores, "get_player_data", return_value=player_data("Player-Name")), \
+             contextlib.redirect_stdout(io.StringIO()):
+            hiscores.refresh_quest_points(object(), [row])
+        self.assertEqual(row["RSN"], "Player-Name")
+        self.assertEqual(row["TOTEXP"], "200000")
+        self.assertEqual(row["TIME"], "123")
+
+    def test_ineligible_player_data_does_not_correct_the_name(self):
+        payload = player_data("Player-Name")
+        payload["skills"]["hitpoints"] = {"level": 99, "fine_xp": 130344310}
+        row = {"RSN": "player name", "TOTEXP": "1", "TIME": "123"}
+        with patch.object(hiscores, "get_player_data", return_value=payload), \
+             contextlib.redirect_stdout(io.StringIO()):
+            hiscores.refresh_quest_points(object(), [row])
+        self.assertEqual(row["RSN"], "player name")
+
     def test_bad_player_data_is_unavailable_instead_of_ineligible(self):
         missing = player_data()
         del missing["skills"]["hitpoints"]
@@ -134,10 +193,21 @@ class PlayerDataTests(unittest.TestCase):
                 self.assertEqual(result.status, "unavailable")
                 self.assertIsInstance(result.error, hiscores.DataUnavailable)
 
-    def test_canonical_name_mismatch_is_unavailable(self):
-        with patch.object(hiscores, "request", return_value=response(200, player_data("Other Player"))):
-            with self.assertRaises(hiscores.DataUnavailable):
-                hiscores.get_player_data(object(), "Player")
+    def test_canonical_name_correction_is_accepted_and_cached(self):
+        cache = {}
+        with patch.object(hiscores, "request", return_value=response(200, player_data("Player-Name"))) as request:
+            payload = hiscores.get_player_data(object(), "player name", cache)
+            self.assertEqual(payload["name"], "Player-Name")
+            self.assertIs(hiscores.get_player_data(object(), "Player-Name", cache), payload)
+        self.assertEqual(request.call_count, 1)
+
+    def test_invalid_canonical_names_remain_unavailable(self):
+        for name in (None, "", "   ", 123):
+            payload = player_data()
+            payload["name"] = name
+            with self.subTest(name=name), patch.object(hiscores, "request", return_value=response(200, payload)):
+                with self.assertRaises(hiscores.DataUnavailable):
+                    hiscores.get_player_data(object(), "Player")
 
     def test_known_no_data_responses_are_cached(self):
         for status, error in ((404, "PLAYER_NOT_FOUND"), (403, "PLAYER_NOT_MEMBER")):
@@ -170,6 +240,47 @@ class PlayerDataTests(unittest.TestCase):
              contextlib.redirect_stdout(io.StringIO()):
             hiscores.main()
         self.assertEqual(write.call_args.args[2][0]["RSCORE"], "73")
+
+    def test_main_persists_canonical_names_and_merges_duplicate_aliases(self):
+        first = hiscores.score_player("Player-Name", hiscores.parse_player_data(player_data())).row
+        first.update({"TIME": 20, "QPOINTS": "", "RSCORE": ""})
+        second = dict(first, TIME=30, TOTEXP=first["TOTEXP"] + 1)
+        old = dict(first, RSN="player name", TIME="1", QPOINTS="42", RSCORE="73")
+        usernames, rows = self.run_refresh(
+            ["player name", "Player-Name", "Unscored"],
+            {"player name": old},
+            {"player name": first, "player-name": second},
+        )
+        self.assertEqual(usernames, ["Player-Name", "Unscored"])
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["RSN"], "Player-Name")
+        self.assertEqual(rows[0]["TIME"], "30")
+        self.assertEqual(rows[0]["TOTEXP"], str(second["TOTEXP"]))
+        self.assertEqual(rows[0]["QPOINTS"], "42")
+        self.assertEqual(rows[0]["RSCORE"], "73")
+
+    def test_daily_correction_is_saved_without_replacing_newer_stats(self):
+        fresh = hiscores.score_player("player name", hiscores.parse_player_data(player_data())).row
+        fresh.update({"TIME": 123, "TOTEXP": 200000})
+        usernames, rows = self.run_refresh(
+            ["player name"], {}, {"player name": fresh}, player_data("Player-Name"),
+        )
+        self.assertEqual(usernames, ["Player-Name"])
+        self.assertEqual(rows[0]["RSN"], "Player-Name")
+        self.assertEqual(rows[0]["TOTEXP"], "200000")
+        self.assertEqual(rows[0]["TIME"], "123")
+        self.assertEqual(rows[0]["QPOINTS"], "42")
+
+    def test_correction_reuses_scores_already_saved_under_canonical_name(self):
+        fresh = hiscores.score_player("Player-Name", hiscores.parse_player_data(player_data())).row
+        fresh.update({"TIME": 20, "RSCORE": ""})
+        old = dict(fresh, TIME="1", QPOINTS="42", RSCORE="73")
+        usernames, rows = self.run_refresh(
+            ["player name"], {"player-name": old}, {"player name": fresh},
+        )
+        self.assertEqual(usernames, ["Player-Name"])
+        self.assertEqual(rows[0]["QPOINTS"], "42")
+        self.assertEqual(rows[0]["RSCORE"], "73")
 
 
 if __name__ == "__main__":

@@ -88,6 +88,13 @@ def write_csv(path, fieldnames, rows):
     temporary.replace(path)
 
 
+def write_usernames(path, usernames):
+    temporary = path.with_suffix(".tmp")
+    with temporary.open("w", newline="", encoding="utf-8") as file:
+        csv.writer(file, lineterminator="\n").writerows((name,) for name in usernames)
+    temporary.replace(path)
+
+
 def create_session():
     session = requests.Session()
     session.headers.update({"User-Agent": USER_AGENT})
@@ -142,10 +149,11 @@ def get_player_data(session, username, cache=None):
         raise DataUnavailable(f"Player Data returned HTTP {response.status_code}")
     payload = response_json(response)
     canonical_name = payload.get("name")
-    if not isinstance(canonical_name, str) or username_key(canonical_name) != key:
-        raise DataUnavailable("Player Data returned a different player name")
+    if not isinstance(canonical_name, str) or not username_key(canonical_name):
+        raise DataUnavailable("Player Data returned an invalid player name")
     if cache is not None:
         cache[key] = payload
+        cache[username_key(canonical_name)] = payload
     return payload
 
 
@@ -278,13 +286,21 @@ def check_player(session, username, player_data_cache=None):
     """Check eligibility, falling back to Player Data for missing Hiscores stats."""
     try:
         payload = get_hiscores(session, username)
-        parsed = parse_skills(payload) if payload is not None else None
+        parse_error = None
+        try:
+            parsed = parse_skills(payload) if payload is not None else None
+        except DataUnavailable as error:
+            parsed = None
+            parse_error = error
         if parsed is None:
             status = "not_found" if payload is None else "incomplete"
             player_data = get_player_data(session, username, player_data_cache)
             if player_data is None:
+                if parse_error is not None:
+                    return PlayerCheck("unavailable", error=parse_error)
                 return PlayerCheck(status)
             parsed = parse_player_data(player_data)
+            username = player_data["name"]
         return score_player(username, parsed, rune_score(payload) if payload is not None else "")
     except DataUnavailable as error:
         return PlayerCheck("unavailable", error=error)
@@ -384,7 +400,7 @@ def refresh_quest_points(session, rows, player_data_cache=None):
             points = parse_quest_points(payload) if payload is not None else None
             result = None
             if payload is not None:
-                result = score_player(row["RSN"], parse_player_data(payload), row.get("RSCORE", ""))
+                result = score_player(payload["name"], parse_player_data(payload), row.get("RSCORE", ""))
         except DataUnavailable as error:
             counts["unavailable"] += 1
             consecutive_failures += 1
@@ -395,9 +411,10 @@ def refresh_quest_points(session, rows, player_data_cache=None):
                 break
             continue
         consecutive_failures = 0
-        if (result is not None and result.status == "eligible"
-                and result.row["TOTEXP"] >= int(row.get("TOTEXP") or 0)):
-            row.update(result.row)
+        if result is not None and result.status == "eligible":
+            row["RSN"] = result.row["RSN"]
+            if result.row["TOTEXP"] >= int(row.get("TOTEXP") or 0):
+                row.update(result.row)
         row["QPOINTS"] = points
         counts["no public data" if points is None else "updated"] += 1
         result = "no public data" if points is None else f"{points} QP"
@@ -417,23 +434,55 @@ def main():
     player_data_cache = {}
     with create_session() as session:
         new_scores = refresh_scores(session, usernames, player_data_cache)
-        rows = []
+        rows_by_name = {}
         for name in usernames:
             key = username_key(name)
             old = old_scores.get(key)
-            score = new_scores.get(key)
+            fresh = new_scores.get(key)
+            if old is None and fresh is not None:
+                old = old_scores.get(username_key(fresh["RSN"]))
+            score = fresh
             if score is None or (old is not None and int(old["TIME"]) > score["TIME"]):
                 score = old
             if score is not None:
-                score["RSN"] = name
+                score = dict(score)
+                score["RSN"] = fresh["RSN"] if fresh is not None else name
                 score["QPOINTS"] = old.get("QPOINTS", "") if old is not None else ""
                 if old is not None and score.get("RSCORE", "") == "":
                     score["RSCORE"] = old.get("RSCORE", "")
-                rows.append(score)
+                rows_by_name[key] = score
         if args.refresh_quest_points or "QPOINTS" not in columns:
-            refresh_quest_points(session, rows, player_data_cache)
+            refresh_quest_points(session, list(rows_by_name.values()), player_data_cache)
+
+    roster = {}
+    corrections = {}
+    for name in usernames:
+        row = rows_by_name.get(username_key(name))
+        canonical = row["RSN"] if row is not None else name
+        roster.setdefault(username_key(canonical), canonical)
+        if canonical != name:
+            corrections[username_key(canonical)] = canonical
+            print(f"Correcting username {name!r} to {canonical!r}")
+    roster.update(corrections)
+
+    published = {}
+    for row in rows_by_name.values():
+        key = username_key(row["RSN"])
+        if key in published:
+            previous = published[key]
+            if (int(previous["TIME"]), int(previous["TOTEXP"])) > (int(row["TIME"]), int(row["TOTEXP"])):
+                row, previous = previous, row
+            for field in ("QPOINTS", "RSCORE"):
+                if row.get(field) in (None, ""):
+                    row[field] = previous.get(field, "")
+        row["RSN"] = roster[key]
+        published[key] = row
+    rows = [published[key] for key in sorted(published)]
 
     write_csv(SCORES_PATH, FIELDS, rows)
+    corrected_usernames = [roster[key] for key in sorted(roster)]
+    if corrected_usernames != usernames:
+        write_usernames(USERNAMES_PATH, corrected_usernames)
     print(f"Merged {len(new_scores):,} refreshed scores into {len(rows):,} published rows.")
 
 

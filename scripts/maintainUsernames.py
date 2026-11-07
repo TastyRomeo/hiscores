@@ -81,17 +81,25 @@ def discover(session, clans_path, active):
     print(f"Checking all {len(keys)} clan candidates")
 
     additions = []
+    known = set(active)
     unavailable = 0
     for position, key in enumerate(keys, start=1):
         name = candidates[key]
-        status = player_status(session, name)
+        result = check_player(session, name)
+        if isinstance(result.error, RateLimited):
+            raise result.error
+        status = result.status
         log_check("Clan candidates", position, len(keys), name, status)
         unavailable = unavailable + 1 if status == "unavailable" else 0
         if unavailable == 3:
             print("Stopping clan candidate checks after three consecutive unavailable results")
             break
         if status == "eligible":
-            additions.append(name)
+            canonical_name = result.row["RSN"]
+            canonical_key = username_key(canonical_name)
+            if canonical_key not in known:
+                additions.append(canonical_name)
+                known.add(canonical_key)
     return additions
 
 

@@ -36,4 +36,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: 'Update hiscores.csv'
-          file_pattern: 'data/hiscores.csv'
+          file_pattern: 'data/hiscores.csv data/usernames.csv'
