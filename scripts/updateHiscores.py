@@ -11,7 +11,7 @@ import requests
 
 
 HISCORES_URL = "https://secure.runescape.com/m=hiscore/index_lite.json"
-QUESTS_URL = "https://secure.runescape.com/m=adventurers-log/api/v1/playerQuests"
+PLAYER_DATA_URL = "https://secure.runescape.com/m=adventurers-log/api/v1/playerData"
 USER_AGENT = "RS3 Low HP Hiscores (+https://github.com/TastyRomeo/hiscores)"
 REQUEST_TIMEOUT = (5, 12)
 MAX_CONSECUTIVE_FAILURES = 5
@@ -123,20 +123,61 @@ def get_hiscores(session, username, url=HISCORES_URL):
     return response_json(response)
 
 
-def get_quest_points(session, username):
-    """Return Jagex's in-game total, or None if the player has no public data."""
+def get_player_data(session, username, cache=None):
+    key = username_key(username)
+    if cache is not None and key in cache:
+        return cache[key]
+
     name = quote(username.replace("_", " "), safe="")
-    response = request(session, f"{QUESTS_URL}/{name}")
+    response = request(session, f"{PLAYER_DATA_URL}/{name}", params={
+        "includeSkills": "true", "includeQuests": "true",
+    })
     if response.status_code in (403, 404):
         error = response_json(response).get("error")
         if error in ("PLAYER_NOT_FOUND", "PLAYER_NOT_MEMBER"):
+            if cache is not None:
+                cache[key] = None
             return None
     if response.status_code != 200:
-        raise DataUnavailable(f"Player Quests returned HTTP {response.status_code}")
-    points = response_json(response).get("qp")
+        raise DataUnavailable(f"Player Data returned HTTP {response.status_code}")
+    payload = response_json(response)
+    canonical_name = payload.get("name")
+    if not isinstance(canonical_name, str) or username_key(canonical_name) != key:
+        raise DataUnavailable("Player Data returned a different player name")
+    if cache is not None:
+        cache[key] = payload
+    return payload
+
+
+def parse_quest_points(payload):
+    points = payload.get("qp") if isinstance(payload, dict) else None
     if type(points) is not int or points < 0:
-        raise DataUnavailable("Player Quests returned an invalid quest point total")
+        raise DataUnavailable("Player Data returned an invalid quest point total")
     return points
+
+
+def get_quest_points(session, username, cache=None):
+    """Return Jagex's in-game total, or None if the player has no public data."""
+    payload = get_player_data(session, username, cache)
+    return parse_quest_points(payload) if payload is not None else None
+
+
+def parse_player_data(payload):
+    records = payload.get("skills") if isinstance(payload, dict) else None
+    if not isinstance(records, dict) or not {name.lower() for name in BASE_SKILLS}.issubset(records):
+        raise DataUnavailable("Player Data omitted expected skill records")
+
+    skills = {}
+    for name in BASE_SKILLS:
+        record = records[name.lower()]
+        if not isinstance(record, dict):
+            raise DataUnavailable("Player Data returned an invalid skill record")
+        level, fine_xp = record.get("level"), record.get("fine_xp")
+        if (type(level) is not int or not 1 <= level <= 126
+                or type(fine_xp) is not int or not 0 <= fine_xp <= 2_000_000_000):
+            raise DataUnavailable("Player Data returned invalid skill levels or XP")
+        skills[name] = (level, fine_xp // 10)
+    return sum(level for level, _ in skills.values()), sum(xp for _, xp in skills.values()), skills
 
 
 def parse_skills(payload):
@@ -233,16 +274,23 @@ INVENTION_VIRTUAL_XP = (
 )
 
 
-def check_player(session, username):
-    """Check leaderboard eligibility without depending on Adventurer's Log."""
+def check_player(session, username, player_data_cache=None):
+    """Check eligibility, falling back to Player Data for missing Hiscores stats."""
     try:
         payload = get_hiscores(session, username)
-        if payload is None:
-            return PlayerCheck("not_found")
-        parsed = parse_skills(payload)
+        parsed = parse_skills(payload) if payload is not None else None
+        if parsed is None:
+            status = "not_found" if payload is None else "incomplete"
+            player_data = get_player_data(session, username, player_data_cache)
+            if player_data is None:
+                return PlayerCheck(status)
+            parsed = parse_player_data(player_data)
+        return score_player(username, parsed, rune_score(payload) if payload is not None else "")
     except DataUnavailable as error:
         return PlayerCheck("unavailable", error=error)
 
+
+def score_player(username, parsed, rscore=""):
     if parsed is None:
         return PlayerCheck("incomplete")
     total_level, total_xp, skills = parsed
@@ -278,12 +326,12 @@ def check_player(session, username):
         "CMBLVL": combat,
         "CMBLVLADJ": combat_level(*combat_levels),
         "CMBEXPADJ": adjusted_combat_xp,
-        "RSCORE": rune_score(payload),
+        "RSCORE": rscore,
         "TIME": int(time.time()),
     })
 
 
-def refresh_scores(session, usernames):
+def refresh_scores(session, usernames, player_data_cache=None):
     total = len(usernames)
     scores = {}
     counts = Counter()
@@ -291,7 +339,7 @@ def refresh_scores(session, usernames):
 
     print(f"Checking {total:,} players on Hiscores.", flush=True)
     for index, username in enumerate(usernames, start=1):
-        result = check_player(session, username)
+        result = check_player(session, username, player_data_cache)
         counts[result.status] += 1
         progress = f"[{index:,}/{total:,}] {username}"
         if result.status == "unavailable":
@@ -323,16 +371,20 @@ def refresh_scores(session, usernames):
     return scores
 
 
-def refresh_quest_points(session, rows):
+def refresh_quest_points(session, rows, player_data_cache=None):
     counts = {"updated": 0, "no public data": 0, "unavailable": 0}
     consecutive_failures = 0
     total = len(rows)
 
-    print(f"Checking Quest Points for {total:,} published players.", flush=True)
+    print(f"Checking skills and Quest Points for {total:,} published players.", flush=True)
     for index, row in enumerate(rows, start=1):
         progress = f"[{index:,}/{total:,}] {row['RSN']}"
         try:
-            points = get_quest_points(session, row["RSN"])
+            payload = get_player_data(session, row["RSN"], player_data_cache)
+            points = parse_quest_points(payload) if payload is not None else None
+            result = None
+            if payload is not None:
+                result = score_player(row["RSN"], parse_player_data(payload), row.get("RSCORE", ""))
         except DataUnavailable as error:
             counts["unavailable"] += 1
             consecutive_failures += 1
@@ -343,6 +395,9 @@ def refresh_quest_points(session, rows):
                 break
             continue
         consecutive_failures = 0
+        if (result is not None and result.status == "eligible"
+                and result.row["TOTEXP"] >= int(row.get("TOTEXP") or 0)):
+            row.update(result.row)
         row["QPOINTS"] = points
         counts["no public data" if points is None else "updated"] += 1
         result = "no public data" if points is None else f"{points} QP"
@@ -359,8 +414,9 @@ def main():
 
     usernames = read_usernames()
     old_scores, columns = read_scores(SCORES_PATH)
+    player_data_cache = {}
     with create_session() as session:
-        new_scores = refresh_scores(session, usernames)
+        new_scores = refresh_scores(session, usernames, player_data_cache)
         rows = []
         for name in usernames:
             key = username_key(name)
@@ -371,9 +427,11 @@ def main():
             if score is not None:
                 score["RSN"] = name
                 score["QPOINTS"] = old.get("QPOINTS", "") if old is not None else ""
+                if old is not None and score.get("RSCORE", "") == "":
+                    score["RSCORE"] = old.get("RSCORE", "")
                 rows.append(score)
         if args.refresh_quest_points or "QPOINTS" not in columns:
-            refresh_quest_points(session, rows)
+            refresh_quest_points(session, rows, player_data_cache)
 
     write_csv(SCORES_PATH, FIELDS, rows)
     print(f"Merged {len(new_scores):,} refreshed scores into {len(rows):,} published rows.")

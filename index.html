@@ -73,12 +73,12 @@
         const value = Number(data);
         return type === 'sort' ? value : value.toLocaleString('en-GB');
       };
-      let changeVisibility = function( L ) {
-        for (const i in L) {
-          j = L[i];
-          table.column(j).visible(!table.column(j).visible());
+      let changeVisibility = function(columns) {
+        for (const index of columns) {
+          table.column(index).visible(!table.column(index).visible(), false);
         }
-      }
+        table.columns.adjust().draw(false);
+      };
       function parseCsv(data) {
         const [header, ...entries] = data.split(/\r?\n/);
         const fields = header.split(',');
@@ -118,13 +118,13 @@
             },
             order: [[3,'desc']],
             columnDefs: [
-              {targets: 0, width: '210px'},
-              {targets: [1,2], width: '110px'},
-              {targets: [3,4,5,6,12], width: '135px'},
-              {targets: [7,8,11], width: '175px'},
-              {targets: [9,10], width: '145px'},
-              {targets: 13, width: '70px'},
-              {targets: 14, width: '130px'}
+              {targets: 0, width: '19.27%'},
+              {targets: [1,2], width: '10.09%'},
+              {targets: [3,4,5,6,12], width: '12.39%'},
+              {targets: [7,8,11], width: '16.05%'},
+              {targets: [9,10], width: '13.30%'},
+              {targets: 13, width: '6.42%'},
+              {targets: 14, width: '11.93%'}
             ],
             columns: [
               { 
