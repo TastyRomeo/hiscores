@@ -42,25 +42,21 @@
         color: #f7f6f1;
         margin: 0;
       }
-      span.dt-column-order {
-        display: none;
+      #hiscoreTable {
+        table-layout: fixed;
+        width: 100%;
       }
       table.dataTable thead tr th {
-        min-width: 142px;
         padding: 10px !important;
+      }
+      #hiscoreTable thead th .dt-column-header {
+        flex-direction: row;
       }
       .account-badge {
         display: inline-block;
-        margin-inline-start: 0.5em;
-        padding: 0.1em 0.45em;
-        border: 1px solid #b5b7c8;
-        border-radius: 0.4em;
-        font: 600 0.75rem/1.2 system-ui, sans-serif;
-        white-space: nowrap;
-      }
-      .account-badge-hardcore {
-        color: #ffbcbc;
-        border-color: #ff9f9f;
+        margin-inline-end: 0.35em;
+        object-fit: contain;
+        vertical-align: middle;
       }
       a {
         color: #7799CC;
@@ -95,15 +91,16 @@
         return name.replace(/[_\u00a0]/g, ' ').trim().toLowerCase();
       }
       $(function(){
-        const badgeLabels = new Map([
-          ['ironman', 'Ironman'],
-          ['hardcore', 'Hardcore Ironman']
+        const badgeDetails = new Map([
+          ['ironman', {label: 'Ironman', src: 'img/Ironman_badge.png'}],
+          ['hardcore', {label: 'Hardcore Ironman', src: 'img/Hardcore_Ironman_badge.png'}]
         ]);
         const badges = new Map();
+        const ironmanOnly = document.getElementById('ironmanOnly');
         const nameText = DataTable.render.text();
         $.get({url: 'data/ironman-badges.csv', cache: false, dataType: 'text'}).done(data => {
           for (const {RSN, BADGE} of parseCsv(data)) {
-            if (RSN && badgeLabels.has(BADGE)) {
+            if (RSN && badgeDetails.has(BADGE)) {
               badges.set(playerKey(RSN), BADGE);
             }
           }
@@ -120,6 +117,15 @@
               thousands: ","
             },
             order: [[3,'desc']],
+            columnDefs: [
+              {targets: 0, width: '210px'},
+              {targets: [1,2], width: '110px'},
+              {targets: [3,4,5,6,12], width: '135px'},
+              {targets: [7,8,11], width: '175px'},
+              {targets: [9,10], width: '145px'},
+              {targets: 13, width: '70px'},
+              {targets: 14, width: '130px'}
+            ],
             columns: [
               { 
                 title: "Display Name", // 0. Display Name
@@ -131,11 +137,16 @@
                     if (!badgeType) {
                       return nameText.display(name);
                     }
-                    const badge = document.createElement('span');
-                    badge.className = `account-badge account-badge-${badgeType}`;
-                    badge.textContent = badgeLabels.get(badgeType);
+                    const {label, src} = badgeDetails.get(badgeType);
+                    const badge = document.createElement('img');
+                    badge.className = 'account-badge';
+                    badge.src = src;
+                    badge.alt = label;
+                    badge.title = label;
+                    badge.width = 13;
+                    badge.height = 11;
                     const display = document.createElement('span');
-                    display.append(name, ' ', badge);
+                    display.append(badge, name);
                     return display;
                   },
                   filter: nameText.filter
@@ -257,7 +268,7 @@
                 type: 'num-fmt'
               },
               {
-                title: "Quest Points", // 13. Quest Points
+                title: "QP", // 13. Quest Points
                 data: 'QPOINTS',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
@@ -274,7 +285,15 @@
             ],
             data: parseCsv(data)
           });
+          table.search.fixed('ironmanOnly', (_search, row) =>
+            !ironmanOnly.checked || badges.has(playerKey(row.RSN))
+          ).draw();
         }});
+        $(ironmanOnly).change(function () {
+          if (table) {
+            table.draw();
+          }
+        });
         $('input[name="showConstitution"]').change(function () {
           changeVisibility([1,2]);
         });
@@ -327,8 +346,9 @@
       <input type="checkbox" id='useVirtual' name="useVirtual" /><label for="useVirtual">Use virtual levels</label><br />
       <input type="checkbox" id='showConstitution' name="showConstitution" /><label for="showConstitution">Show HP level/XP</label><br />
       <input type="checkbox" id='useAdjusted' name="useAdjusted" /><label for="useAdjusted">Normalise HP to level 10 and 1154 XP</label><br />
+      <input type="checkbox" id='ironmanOnly' name="ironmanOnly" /><label for="ironmanOnly">Ironman only</label><br />
       <!--<input type="checkbox" id='useDecimals' name="useDecimals" /><label for="useDecimals">Show decimal values</label><br />-->
-      <div id="tableContainer"><table id="hiscoreTable" class="cell-border hover order-column stripe"></table></div>
+      <div id="tableContainer"><table id="hiscoreTable" class="cell-border hover order-column stripe nowrap"></table></div>
       Requirements to be listed:
       <ul>
         <li>HP is at most level 15, i.e. can be reset by Nastroth;</li>
