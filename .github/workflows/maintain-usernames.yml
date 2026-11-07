@@ -3,7 +3,8 @@ name: Maintain usernames
 on:
   workflow_dispatch:
   schedule:
-    - cron: '15 2 * * *'
+    - cron: '15 2 * * 1-6'
+    - cron: '15 2 * * 0'
 
 permissions:
   contents: write
@@ -16,7 +17,7 @@ jobs:
   maintain:
     if: github.ref_type == 'branch'
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 360
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v7
@@ -31,7 +32,9 @@ jobs:
       - name: Check usernames
         env:
           HISCORES_INACTIVE_DAYS: ${{ vars.HISCORES_INACTIVE_DAYS }}
-        run: python3 -u scripts/maintainUsernames.py
+        run: |
+          python3 -u scripts/maintainUsernames.py \
+            ${{ (github.event_name == 'workflow_dispatch' || github.event.schedule == '15 2 * * 0') && '--discover-clans' || '' }}
       - name: Commit roster changes
         uses: stefanzweifel/git-auto-commit-action@v7
         with:

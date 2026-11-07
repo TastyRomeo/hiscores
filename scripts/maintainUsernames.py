@@ -3,7 +3,6 @@ import csv
 import json
 import os
 import time
-from bisect import bisect_right
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -16,7 +15,6 @@ from updateHiscores import (
 DAY = 24 * 60 * 60
 CLAN_MEMBERS_URL = "https://secure.runescape.com/m=clan-hiscores/members_lite.ws"
 CLAN_MIN_XP = 100_000
-DISCOVERY_LIMIT = 300
 ARCHIVE_COLUMNS = ["RSN", "REMOVED_AT", "REASON", "LAST_VALID_AT"]
 INVALID_PLAYER_RESULTS = {"not_found", "incomplete", "constitution", "combat_xp"}
 
@@ -62,7 +60,7 @@ def log_check(phase, position, total, name, status):
         print(f"{phase} [{position}/{total}] {name!r}: {status.replace('_', ' ')}")
 
 
-def discover(session, clans_path, active, state):
+def discover(session, clans_path, active):
     candidates = {}
     lines = clans_path.read_text(encoding="utf-8").splitlines()
     clans = [clan for clan in map(str.strip, lines) if clan and not clan.startswith("#")]
@@ -80,17 +78,14 @@ def discover(session, clans_path, active, state):
             print(f"{progress}: could not read roster ({exc})")
 
     keys = sorted(candidates.keys() - active.keys())
-    offset = bisect_right(keys, state["discovery_cursor"])
-    selected = (keys[offset:] + keys[:offset])[:DISCOVERY_LIMIT]
-    print(f"Checking up to {len(selected)} of {len(keys)} clan candidates")
+    print(f"Checking all {len(keys)} clan candidates")
 
     additions = []
     unavailable = 0
-    for position, key in enumerate(selected, start=1):
+    for position, key in enumerate(keys, start=1):
         name = candidates[key]
         status = player_status(session, name)
-        log_check("Clan candidates", position, len(selected), name, status)
-        state["discovery_cursor"] = key
+        log_check("Clan candidates", position, len(keys), name, status)
         unavailable = unavailable + 1 if status == "unavailable" else 0
         if unavailable == 3:
             print("Stopping clan candidate checks after three consecutive unavailable results")
@@ -162,13 +157,14 @@ def utc_timestamp(timestamp):
     return datetime.fromtimestamp(timestamp, tz=timezone.utc).isoformat(timespec="seconds")
 
 
-def maintain(data_dir, inactive_days):
+def maintain(data_dir, inactive_days, discover_clans=False):
     usernames_path = data_dir / "usernames.csv"
     scores_path = data_dir / "hiscores.csv"
     archive_path = data_dir / "removed-usernames.csv"
     state_path = data_dir / "username-maintenance.json"
     original_state = state_path.read_text(encoding="utf-8")
     state = json.loads(original_state)
+    state.pop("discovery_cursor", None)
 
     active = {username_key(name): name for name in read_usernames(usernames_path)}
     scores, columns = read_scores(scores_path)
@@ -181,7 +177,7 @@ def maintain(data_dir, inactive_days):
     print(f"Roster maintenance: {len(active)} active usernames, {inactive_days}-day retirement grace period")
     with create_session() as session:
         retirements = check_missing(session, active, score_times, state["missing"], now, inactive_days)
-        additions = discover(session, data_dir / "clans.txt", active, state)
+        additions = discover(session, data_dir / "clans.txt", active) if discover_clans else []
 
     for key, reason in retirements.items():
         name = active.pop(key)
@@ -223,11 +219,12 @@ def maintain(data_dir, inactive_days):
 def main():
     parser = argparse.ArgumentParser(description="Discover and retire HiScores usernames")
     parser.add_argument("--inactive-days", type=int, default=os.getenv("HISCORES_INACTIVE_DAYS") or 14)
+    parser.add_argument("--discover-clans", action="store_true", help="Check all new clan candidates")
     args = parser.parse_args()
     if args.inactive_days < 1:
         parser.error("inactive days must be positive")
     try:
-        maintain(Path("data"), args.inactive_days)
+        maintain(Path("data"), args.inactive_days, discover_clans=args.discover_clans)
     except RateLimited as error:
         raise SystemExit(f"Stopping roster maintenance: {error}") from error
 
