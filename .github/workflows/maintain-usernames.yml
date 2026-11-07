@@ -2,11 +2,6 @@ name: Maintain usernames
 
 on:
   workflow_dispatch:
-    inputs:
-      dry_run:
-        description: Preview roster changes without committing
-        type: boolean
-        default: true
   schedule:
     - cron: '15 2 * * *'
 
@@ -15,18 +10,18 @@ permissions:
 
 concurrency:
   group: hiscores-data-${{ github.ref }}
-  cancel-in-progress: false
   queue: max
 
 jobs:
   maintain:
+    if: github.ref_type == 'branch'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.ref }}
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
@@ -35,17 +30,9 @@ jobs:
         run: python3 -m pip install requests
       - name: Check usernames
         env:
-          INACTIVE_DAYS: ${{ vars.HISCORES_INACTIVE_DAYS || '14' }}
-          DISCOVERY_LIMIT: ${{ vars.HISCORES_DISCOVERY_LIMIT || '300' }}
-          DRY_RUN: ${{ inputs.dry_run }}
-        run: |
-          args=(--inactive-days "$INACTIVE_DAYS" --discovery-limit "$DISCOVERY_LIMIT")
-          if [[ "$DRY_RUN" == "true" ]]; then
-            args+=(--dry-run)
-          fi
-          python3 -u scripts/maintainUsernames.py "${args[@]}"
+          HISCORES_INACTIVE_DAYS: ${{ vars.HISCORES_INACTIVE_DAYS }}
+        run: python3 -u scripts/maintainUsernames.py
       - name: Commit roster changes
-        if: ${{ !inputs.dry_run }}
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: Maintain username roster

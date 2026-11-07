@@ -1,3 +1,4 @@
+import argparse
 import csv
 import time
 from bisect import bisect_right
@@ -15,7 +16,7 @@ USER_AGENT = "RS3 Low HP Hiscores (+https://github.com/TastyRomeo/hiscores)"
 REQUEST_TIMEOUT = (5, 12)
 MAX_CONSECUTIVE_FAILURES = 5
 USERNAMES_PATH = Path("data/usernames.csv")
-NEW_SCORES_PATH = Path("data/hiscores-new.csv")
+SCORES_PATH = Path("data/hiscores.csv")
 FIELDS = (
     "RSN", "HPLVL", "HPEXP", "TOTLVL", "TOTLVLADJ", "VIRLVL", "VIRLVLADJ",
     "TOTEXP", "TOTEXPADJ", "CMBLVL", "CMBLVLADJ", "CMBEXPADJ", "RSCORE",
@@ -65,6 +66,26 @@ def read_usernames(path=USERNAMES_PATH):
                 name = row[0].replace("\xa0", " ").strip()
                 names.setdefault(username_key(name), name)
     return sorted(names.values(), key=username_key)
+
+
+def read_scores(path):
+    with path.open(newline="", encoding="utf-8") as file:
+        reader = csv.DictReader(file)
+        rows = {}
+        for row in reader:
+            key = username_key(row["RSN"])
+            if key not in rows or int(row["TIME"]) >= int(rows[key]["TIME"]):
+                rows[key] = row
+        return rows, reader.fieldnames
+
+
+def write_csv(path, fieldnames, rows):
+    temporary = path.with_suffix(".tmp")
+    with temporary.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+    temporary.replace(path)
 
 
 def create_session():
@@ -262,34 +283,100 @@ def check_player(session, username):
     })
 
 
-def main():
-    rows = []
+def refresh_scores(session, usernames):
+    total = len(usernames)
+    scores = {}
     counts = Counter()
     consecutive_failures = 0
 
-    with create_session() as session:
-        for username in read_usernames():
-            result = check_player(session, username)
-            counts[result.status] += 1
-            if result.row is not None:
-                rows.append(result.row)
-            if result.status == "unavailable":
-                consecutive_failures += 1
-                print(f"{username}: {result.error}")
-                if (isinstance(result.error, RateLimited)
-                        or consecutive_failures >= MAX_CONSECUTIVE_FAILURES):
-                    raise SystemExit("Stopping the refresh because Index Lite is unavailable.")
-            else:
-                consecutive_failures = 0
+    print(f"Checking {total:,} players on Hiscores.", flush=True)
+    for index, username in enumerate(usernames, start=1):
+        result = check_player(session, username)
+        counts[result.status] += 1
+        progress = f"[{index:,}/{total:,}] {username}"
+        if result.status == "unavailable":
+            consecutive_failures += 1
+            print(f"{progress} | unavailable ({result.error})", flush=True)
+            if (isinstance(result.error, RateLimited)
+                    or consecutive_failures >= MAX_CONSECUTIVE_FAILURES):
+                raise SystemExit("Stopping the refresh because Index Lite is unavailable.")
+            continue
+
+        consecutive_failures = 0
+        row = result.row
+        if row is None:
+            print(f"{progress} | {result.status.replace('_', ' ')}", flush=True)
+            continue
+
+        scores[username_key(username)] = row
+        print(
+            f"{progress} | HP {row['HPLVL']} ({row['HPEXP']:,} XP)"
+            f" | Total level {row['TOTLVL']:,} | Virtual level {row['VIRLVL']:,}"
+            f" | Total XP {row['TOTEXP']:,} | Combat {row['CMBLVL']}"
+            f" | RuneScore {row['RSCORE']}",
+            flush=True,
+        )
 
     print(", ".join(f"{status}: {count}" for status, count in sorted(counts.items())))
-    if not rows:
+    if not scores:
         raise SystemExit("Index Lite returned no eligible players. Keeping the existing scores.")
+    return scores
 
-    with NEW_SCORES_PATH.open("w", newline="", encoding="utf-8") as file:
-        writer = csv.DictWriter(file, fieldnames=FIELDS)
-        writer.writeheader()
-        writer.writerows(rows)
+
+def refresh_quest_points(session, rows):
+    counts = {"updated": 0, "no public data": 0, "unavailable": 0}
+    consecutive_failures = 0
+    total = len(rows)
+
+    print(f"Checking Quest Points for {total:,} published players.", flush=True)
+    for index, row in enumerate(rows, start=1):
+        progress = f"[{index:,}/{total:,}] {row['RSN']}"
+        try:
+            points = get_quest_points(session, row["RSN"])
+        except DataUnavailable as error:
+            counts["unavailable"] += 1
+            consecutive_failures += 1
+            print(f"{progress} | unavailable ({error})", flush=True)
+            if (isinstance(error, RateLimited)
+                    or consecutive_failures >= MAX_CONSECUTIVE_FAILURES):
+                print("Stopping the Quest Points refresh. Keeping cached values for unchecked players.")
+                break
+            continue
+        consecutive_failures = 0
+        row["QPOINTS"] = points
+        counts["no public data" if points is None else "updated"] += 1
+        result = "no public data" if points is None else f"{points} QP"
+        print(f"{progress} | {result}", flush=True)
+
+    print("Quest Points " + ", ".join(f"{label}: {count}" for label, count in counts.items()))
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Refresh the leaderboard.")
+    parser.add_argument("--refresh-quest-points", action="store_true",
+                        help="Fetch Quest Points for all published scores.")
+    args = parser.parse_args()
+
+    usernames = read_usernames()
+    old_scores, columns = read_scores(SCORES_PATH)
+    with create_session() as session:
+        new_scores = refresh_scores(session, usernames)
+        rows = []
+        for name in usernames:
+            key = username_key(name)
+            old = old_scores.get(key)
+            score = new_scores.get(key)
+            if score is None or (old is not None and int(old["TIME"]) > score["TIME"]):
+                score = old
+            if score is not None:
+                score["RSN"] = name
+                score["QPOINTS"] = old.get("QPOINTS", "") if old is not None else ""
+                rows.append(score)
+        if args.refresh_quest_points or "QPOINTS" not in columns:
+            refresh_quest_points(session, rows)
+
+    write_csv(SCORES_PATH, FIELDS, rows)
+    print(f"Merged {len(new_scores):,} refreshed scores into {len(rows):,} published rows.")
 
 
 if __name__ == "__main__":

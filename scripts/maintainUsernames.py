@@ -1,21 +1,22 @@
 import argparse
 import csv
 import json
+import os
 import time
 from bisect import bisect_right
 from datetime import datetime, timezone
 from pathlib import Path
 
-from mergeHiscores import read_scores
 from updateHiscores import (
     DataUnavailable, RateLimited, check_player, create_session,
-    read_usernames, request, username_key,
+    read_scores, read_usernames, request, username_key, write_csv,
 )
 
 
 DAY = 24 * 60 * 60
 CLAN_MEMBERS_URL = "https://secure.runescape.com/m=clan-hiscores/members_lite.ws"
 CLAN_MIN_XP = 100_000
+DISCOVERY_LIMIT = 300
 ARCHIVE_COLUMNS = ["RSN", "REMOVED_AT", "REASON", "LAST_VALID_AT"]
 INVALID_PLAYER_RESULTS = {"not_found", "incomplete", "constitution", "combat_xp"}
 
@@ -56,33 +57,39 @@ def player_status(session, name):
     return result.status
 
 
-def discover(session, clans_path, active, state, limit):
-    if not limit:
-        return []
+def log_check(phase, position, total, name, status):
+    if position in (1, total) or position % 25 == 0 or status in {"eligible", "unavailable"}:
+        print(f"{phase} [{position}/{total}] {name!r}: {status.replace('_', ' ')}")
 
+
+def discover(session, clans_path, active, state):
     candidates = {}
-    for line in clans_path.read_text(encoding="utf-8").splitlines():
-        clan = line.strip()
-        if not clan or clan.startswith("#"):
-            continue
+    lines = clans_path.read_text(encoding="utf-8").splitlines()
+    clans = [clan for clan in map(str.strip, lines) if clan and not clan.startswith("#")]
+    print(f"Scanning {len(clans)} configured clans")
+    for position, clan in enumerate(clans, start=1):
+        progress = f"Clan scan [{position}/{len(clans)}] {clan!r}"
         try:
-            for name in clan_members(session, clan):
+            members = clan_members(session, clan)
+            for name in members:
                 candidates.setdefault(username_key(name), name)
+            print(f"{progress}: {len(members)} members passed the clan XP filter")
         except RateLimited:
             raise
         except (DataUnavailable, ValueError) as exc:
-            print(f"Could not read clan {clan!r} ({exc})")
+            print(f"{progress}: could not read roster ({exc})")
 
     keys = sorted(candidates.keys() - active.keys())
     offset = bisect_right(keys, state["discovery_cursor"])
-    selected = (keys[offset:] + keys[:offset])[:limit]
+    selected = (keys[offset:] + keys[:offset])[:DISCOVERY_LIMIT]
     print(f"Checking up to {len(selected)} of {len(keys)} clan candidates")
 
     additions = []
     unavailable = 0
-    for key in selected:
+    for position, key in enumerate(selected, start=1):
         name = candidates[key]
         status = player_status(session, name)
+        log_check("Clan candidates", position, len(selected), name, status)
         state["discovery_cursor"] = key
         unavailable = unavailable + 1 if status == "unavailable" else 0
         if unavailable == 3:
@@ -104,23 +111,27 @@ def check_missing(session, active, score_times, missing, now, inactive_days):
             del missing[key]
 
     if not stale:
-        return []
+        print("All active usernames have recent scores.")
+        return {}
 
     # Known accounts distinguish player-specific failures from an endpoint-wide failure.
     controls = sorted(active.keys() & score_times.keys(), key=lambda key: (-score_times[key], key))[:3]
+    print(f"Checking Hiscores health against {len(controls)} recently scored usernames")
     results = {key: player_status(session, active[key]) for key in controls}
     eligible_controls = sum(status == "eligible" for status in results.values())
+    print(f"Hiscores health check: {eligible_controls}/{len(controls)} returned eligible scores")
     if not controls or eligible_controls < min(2, len(controls)):
         print("Skipping retirement checks because the Hiscores health check failed")
-        return []
+        return {}
 
     print(f"Checking {len(stale)} active usernames without a recent score")
-    retirements = []
+    retirements = {}
     unavailable = 0
-    for key in stale:
+    for position, key in enumerate(stale, start=1):
         status = results.get(key)
         if status is None:
             status = player_status(session, active[key])
+        log_check("Active usernames", position, len(stale), active[key], status)
 
         unavailable = unavailable + 1 if status == "unavailable" else 0
         if status not in INVALID_PLAYER_RESULTS:
@@ -141,26 +152,17 @@ def check_missing(session, active, score_times, missing, now, inactive_days):
 
         observation["last"] = now
         if now - observation["first"] >= inactive_days * DAY:
-            retirements.append((key, status))
+            retirements[key] = status
             del missing[key]
 
     return retirements
-
-
-def write_csv(path, fieldnames, rows):
-    temporary = path.with_suffix(".tmp")
-    with temporary.open("w", newline="", encoding="utf-8") as file:
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
-    temporary.replace(path)
 
 
 def utc_timestamp(timestamp):
     return datetime.fromtimestamp(timestamp, tz=timezone.utc).isoformat(timespec="seconds")
 
 
-def maintain(data_dir, inactive_days, discovery_limit, dry_run):
+def maintain(data_dir, inactive_days):
     usernames_path = data_dir / "usernames.csv"
     scores_path = data_dir / "hiscores.csv"
     archive_path = data_dir / "removed-usernames.csv"
@@ -176,15 +178,14 @@ def maintain(data_dir, inactive_days, discovery_limit, dry_run):
     archived = {username_key(row["RSN"]) for row in archive}
     now = int(time.time())
 
+    print(f"Roster maintenance: {len(active)} active usernames, {inactive_days}-day retirement grace period")
     with create_session() as session:
         retirements = check_missing(session, active, score_times, state["missing"], now, inactive_days)
-        additions = discover(session, data_dir / "clans.txt", active, state, discovery_limit)
+        additions = discover(session, data_dir / "clans.txt", active, state)
 
-    retired_keys = set()
-    for key, reason in retirements:
+    for key, reason in retirements.items():
         name = active.pop(key)
-        retired_keys.add(key)
-        print(f"Retiring {name!r} ({reason})")
+        print(f"Retiring {name!r} ({reason.replace('_', ' ')})")
         archive.append({
             "RSN": name,
             "REMOVED_AT": utc_timestamp(now),
@@ -198,10 +199,7 @@ def maintain(data_dir, inactive_days, discovery_limit, dry_run):
         action = "Restoring" if key in archived else "Adding"
         print(f"{action} {name!r}")
 
-    print(f"{len(additions)} additions and {len(retirements)} retirements")
-    if dry_run:
-        print("Dry run complete")
-        return
+    print(f"Roster changes: add or restore {len(additions)}, retire {len(retirements)}")
 
     if additions or retirements:
         temporary = usernames_path.with_suffix(".tmp")
@@ -211,8 +209,8 @@ def maintain(data_dir, inactive_days, discovery_limit, dry_run):
         temporary.replace(usernames_path)
 
     if retirements:
-        if retired_keys & scores.keys():
-            write_csv(scores_path, columns, (row for key, row in scores.items() if key not in retired_keys))
+        if retirements.keys() & scores.keys():
+            write_csv(scores_path, columns, (row for key, row in scores.items() if key not in retirements))
         write_csv(archive_path, ARCHIVE_COLUMNS, archive)
 
     new_state = json.dumps(state, indent=2, sort_keys=True) + "\n"
@@ -224,14 +222,12 @@ def maintain(data_dir, inactive_days, discovery_limit, dry_run):
 
 def main():
     parser = argparse.ArgumentParser(description="Discover and retire HiScores usernames")
-    parser.add_argument("--inactive-days", type=int, default=14)
-    parser.add_argument("--discovery-limit", type=int, default=300)
-    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--inactive-days", type=int, default=os.getenv("HISCORES_INACTIVE_DAYS") or 14)
     args = parser.parse_args()
-    if args.inactive_days < 1 or args.discovery_limit < 0:
-        parser.error("inactive days must be positive and discovery limit must be nonnegative")
+    if args.inactive_days < 1:
+        parser.error("inactive days must be positive")
     try:
-        maintain(Path("data"), args.inactive_days, args.discovery_limit, args.dry_run)
+        maintain(Path("data"), args.inactive_days)
     except RateLimited as error:
         raise SystemExit(f"Stopping roster maintenance: {error}") from error
 
