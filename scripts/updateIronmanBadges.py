@@ -9,7 +9,6 @@ from updateHiscores import (
     RateLimited,
     create_session,
     get_hiscores,
-    parse_skills,
     read_scores,
     read_usernames,
     username_key,
@@ -24,30 +23,45 @@ MODE_URLS = (
 )
 
 
-def find_badge(session, username):
+def overall_record(payload):
+    records = payload.get("skills") if isinstance(payload, dict) else None
+    if not isinstance(records, list) or any(not isinstance(record, dict) for record in records):
+        raise DataUnavailable("Invalid Index Lite skills")
+    overall = [record for record in records if record.get("name") == "Overall"]
+    if len(overall) != 1:
+        raise DataUnavailable("Index Lite must contain one Overall record")
+    return overall[0]
+
+
+def total_xp(overall):
+    xp = overall.get("xp")
+    if type(xp) is not int or xp < 0:
+        raise DataUnavailable("Index Lite returned an invalid Overall XP total")
+    return xp
+
+
+def find_badge(session, username, cached_xp=None):
     standard = None
     for badge, url in MODE_URLS:
         payload = get_hiscores(session, username, url)
         if payload is None:
             continue
 
-        stats = parse_skills(payload)
-        if badge == "hardcore":
-            overall = next(skill for skill in payload["skills"] if skill["name"] == "Overall")
-            if isinstance(overall.get("death"), dict):
-                continue
-        if stats is None:
-            raise DataUnavailable(f"Incomplete {badge} skill record")
+        overall = overall_record(payload)
+        if badge == "hardcore" and isinstance(overall.get("death"), dict):
+            continue
+        mode_xp = total_xp(overall)
 
         if standard is None:
             # Mode scores can freeze when a player loses eligibility.
             live = get_hiscores(session, username)
             if live is None:
-                return None
-            standard = parse_skills(live)
-            if standard is None:
-                raise DataUnavailable("Incomplete standard skill record")
-        if stats == standard:
+                if type(cached_xp) is not int or cached_xp < 0:
+                    raise DataUnavailable("No standard Hiscores XP total is available")
+                standard = cached_xp
+            else:
+                standard = total_xp(overall_record(live))
+        if mode_xp == standard:
             return badge
 
     return None
@@ -77,7 +91,7 @@ def main():
             progress = f"[{index:,}/{total:,}] {username}"
             previous_badge = old_badges.get(key)
             try:
-                badge = find_badge(session, username)
+                badge = find_badge(session, username, cached_xp=int(scores[key]["TOTEXP"]))
             except RateLimited as error:
                 print(f"{progress}: rate limited ({error})", flush=True)
                 raise SystemExit(f"Keeping the previous badges. {error}") from error
