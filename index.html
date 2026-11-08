@@ -7,6 +7,9 @@
     <link rel="shortcut icon" type="image/png" href="img/favicon.png">
     <link rel="stylesheet" href="https://cdn.datatables.net/3.1.5/css/dataTables.dataTables.min.css">
     <style>
+      html {
+        scrollbar-gutter: stable;
+      }
       html, body {
         margin: 0;
         padding: 0;
@@ -42,25 +45,21 @@
         color: #f7f6f1;
         margin: 0;
       }
-      span.dt-column-order {
-        display: none;
+      #hiscoreTable {
+        table-layout: auto;
+        width: 100%;
       }
       table.dataTable thead tr th {
-        min-width: 142px;
         padding: 10px !important;
+      }
+      #hiscoreTable thead th .dt-column-header {
+        flex-direction: row;
       }
       .account-badge {
         display: inline-block;
-        margin-inline-start: 0.5em;
-        padding: 0.1em 0.45em;
-        border: 1px solid #b5b7c8;
-        border-radius: 0.4em;
-        font: 600 0.75rem/1.2 system-ui, sans-serif;
-        white-space: nowrap;
-      }
-      .account-badge-hardcore {
-        color: #ffbcbc;
-        border-color: #ff9f9f;
+        margin-inline-end: 0.35em;
+        object-fit: contain;
+        vertical-align: middle;
       }
       a {
         color: #7799CC;
@@ -77,12 +76,14 @@
         const value = Number(data);
         return type === 'sort' ? value : value.toLocaleString('en-GB');
       };
-      let changeVisibility = function( L ) {
-        for (const i in L) {
-          j = L[i];
-          table.column(j).visible(!table.column(j).visible());
+      const intFormatWithSort = field => (data, type, row) =>
+        intFormat(type === 'sort' ? row[field] : data, type);
+      let changeVisibility = function(columns) {
+        for (const index of columns) {
+          table.column(index).visible(!table.column(index).visible(), false);
         }
-      }
+        table.columns.adjust().draw(false);
+      };
       function parseCsv(data) {
         const [header, ...entries] = data.split(/\r?\n/);
         const fields = header.split(',');
@@ -95,15 +96,16 @@
         return name.replace(/[_\u00a0]/g, ' ').trim().toLowerCase();
       }
       $(function(){
-        const badgeLabels = new Map([
-          ['ironman', 'Ironman'],
-          ['hardcore', 'Hardcore Ironman']
+        const badgeDetails = new Map([
+          ['ironman', {label: 'Ironman', src: 'img/Ironman_badge.png'}],
+          ['hardcore', {label: 'Hardcore Ironman', src: 'img/Hardcore_Ironman_badge.png'}]
         ]);
         const badges = new Map();
+        const ironmanOnly = document.getElementById('ironmanOnly');
         const nameText = DataTable.render.text();
         $.get({url: 'data/ironman-badges.csv', cache: false, dataType: 'text'}).done(data => {
           for (const {RSN, BADGE} of parseCsv(data)) {
-            if (RSN && badgeLabels.has(BADGE)) {
+            if (RSN && badgeDetails.has(BADGE)) {
               badges.set(playerKey(RSN), BADGE);
             }
           }
@@ -120,6 +122,15 @@
               thousands: ","
             },
             order: [[3,'desc']],
+            columnDefs: [
+              {targets: 0, width: '19.27%'},
+              {targets: [1,2], width: '10.09%'},
+              {targets: [3,4,5,6,12], width: '12.39%'},
+              {targets: [7,8,11], width: '16.05%'},
+              {targets: [9,10], width: '13.30%'},
+              {targets: 13, width: '6.42%'},
+              {targets: 14, width: '11.93%'}
+            ],
             columns: [
               { 
                 title: "Display Name", // 0. Display Name
@@ -131,11 +142,16 @@
                     if (!badgeType) {
                       return nameText.display(name);
                     }
-                    const badge = document.createElement('span');
-                    badge.className = `account-badge account-badge-${badgeType}`;
-                    badge.textContent = badgeLabels.get(badgeType);
+                    const {label, src} = badgeDetails.get(badgeType);
+                    const badge = document.createElement('img');
+                    badge.className = 'account-badge';
+                    badge.src = src;
+                    badge.alt = label;
+                    badge.title = label;
+                    badge.width = 13;
+                    badge.height = 11;
                     const display = document.createElement('span');
-                    display.append(name, ' ', badge);
+                    display.append(badge, name);
                     return display;
                   },
                   filter: nameText.filter
@@ -147,8 +163,9 @@
                 data: 'HPLVL',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
-                orderData: [2],
+                orderData: [1],
                 visible: false,
+                render: intFormatWithSort('HPEXP'),
                 type: 'num'
               },
               { 
@@ -166,8 +183,9 @@
                 data: 'TOTLVL',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
-                orderData: [4,8,12],
-                render: intFormat,
+                // Both XP columns sort by normalised XP; include the visible one.
+                orderData: [3,7,8,12],
+                render: intFormatWithSort('TOTLVLADJ'),
                 type: 'num-fmt'
               },
               { 
@@ -175,7 +193,7 @@
                 data: 'TOTLVLADJ',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
-                orderData: [4,8,12],
+                orderData: [4,7,8,12],
                 visible: false,
                 render: intFormat,
                 type: 'num-fmt'
@@ -185,9 +203,9 @@
                 data: 'VIRLVL',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
-                orderData: [6,8,12],
+                orderData: [5,7,8,12],
                 visible: false,
-                render: intFormat,
+                render: intFormatWithSort('VIRLVLADJ'),
                 type: 'num-fmt'
               },
               { 
@@ -195,7 +213,7 @@
                 data: 'VIRLVLADJ',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
-                orderData: [6,8,12],
+                orderData: [6,7,8,12],
                 visible: false,
                 render: intFormat,
                 type: 'num-fmt'
@@ -205,8 +223,8 @@
                 data: 'TOTEXP',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
-                orderData: [8,12],
-                render: intFormat,
+                orderData: [7,12],
+                render: intFormatWithSort('TOTEXPADJ'),
                 type: 'num-fmt'
               },
               { 
@@ -224,8 +242,8 @@
                 data: 'CMBLVL',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
-                orderData: [10,11],
-                render: intFormat,
+                orderData: [9,11],
+                render: intFormatWithSort('CMBLVLADJ'),
                 type: 'num-fmt'
               },
               { 
@@ -252,12 +270,12 @@
                 data: 'RSCORE',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
-                orderData: [12,8],
+                orderData: [12,7,8],
                 render: intFormat,
                 type: 'num-fmt'
               },
               {
-                title: "Quest Points", // 13. Quest Points
+                title: "QP", // 13. Quest Points
                 data: 'QPOINTS',
                 className: "dt-body-right dt-head-center",
                 orderSequence: ['desc','asc'],
@@ -274,45 +292,51 @@
             ],
             data: parseCsv(data)
           });
+          table.search.fixed('ironmanOnly', (_search, row) =>
+            !ironmanOnly.checked || badges.has(playerKey(row.RSN))
+          ).draw();
         }});
+        $(ironmanOnly).change(function () {
+          if (table) {
+            table.draw();
+          }
+        });
         $('input[name="showConstitution"]').change(function () {
           changeVisibility([1,2]);
         });
         $('input[name="useVirtual"]').change(function () {
+          const [orderNr, direction] = table.order()[0];
           if (!$('input[name="useAdjusted"]').is(":checked")) {
             changeVisibility([3,5]);
-            orderNr = table.order()[0][0];
             if ([3,5].includes(orderNr)) {
-              table.order([[3==orderNr ? 5 : 3,"desc"]]).draw()
+              table.order([[3==orderNr ? 5 : 3,direction]]).draw()
             }
           } else {
             changeVisibility([4,6]);
-            orderNr = table.order()[0][0];
             if ([4,6].includes(orderNr)) {
-              table.order([[4==orderNr ? 6 : 4,"desc"]]).draw()
+              table.order([[4==orderNr ? 6 : 4,direction]]).draw()
             }
           }
         });
         $('input[name="useAdjusted"]').change(function () {
+          const [orderNr, direction] = table.order()[0];
           if (!$('input[name="useVirtual"]').is(":checked")) {
             changeVisibility([3,4]);
-            orderNr = table.order()[0][0];
             if ([3,4].includes(orderNr)) {
-              table.order([[3==orderNr ? 4 : 3,"desc"]]).draw()
+              table.order([[3==orderNr ? 4 : 3,direction]]).draw()
             }
           } else {
             changeVisibility([5,6]);
-            orderNr = table.order()[0][0];
             if ([5,6].includes(orderNr)) {
-              table.order([[5==orderNr ? 6 : 5,"desc"]]).draw()
+              table.order([[5==orderNr ? 6 : 5,direction]]).draw()
             }
           }
           changeVisibility([7,8,9,10]);
           if ([7,8].includes(orderNr)) {
-            table.order([[7==orderNr ? 8 : 7,"desc"]]).draw()
+            table.order([[7==orderNr ? 8 : 7,direction]]).draw()
           }
           if ([9,10].includes(orderNr)) {
-            table.order([[9==orderNr ? 10 : 9,"desc"]]).draw()
+            table.order([[9==orderNr ? 10 : 9,direction]]).draw()
           }
         });
         /*$('input[name="useDecimals"]').change(function () {
@@ -327,21 +351,20 @@
       <input type="checkbox" id='useVirtual' name="useVirtual" /><label for="useVirtual">Use virtual levels</label><br />
       <input type="checkbox" id='showConstitution' name="showConstitution" /><label for="showConstitution">Show HP level/XP</label><br />
       <input type="checkbox" id='useAdjusted' name="useAdjusted" /><label for="useAdjusted">Normalise HP to level 10 and 1154 XP</label><br />
+      <input type="checkbox" id='ironmanOnly' name="ironmanOnly" /><label for="ironmanOnly">Ironman only</label><br />
       <!--<input type="checkbox" id='useDecimals' name="useDecimals" /><label for="useDecimals">Show decimal values</label><br />-->
-      <div id="tableContainer"><table id="hiscoreTable" class="cell-border hover order-column stripe"></table></div>
+      <div id="tableContainer"><table id="hiscoreTable" class="cell-border hover order-column stripe nowrap"></table></div>
       Requirements to be listed:
       <ul>
         <li>HP is at most level 15, i.e. can be reset by Nastroth;</li>
         <li>Must have at least 100,000 Combat XP;</li>
-        <li>Hiscores must provide enough skill data to calculate the ranking;</li>
-        <li>Your username must be on the tracked roster. To suggest an addition, <a href="https://github.com/TastyRomeo/hiscores/issues/new" target="_blank">open an issue</a> or <a href="https://github.com/TastyRomeo/hiscores/compare" target="_blank">make a pull request</a>.</li>
+        <li>Hiscores or Adventurer's Log must provide enough skill data to calculate the ranking;</li>
+        <li>Username must be tracked. To request an addition, <a href="https://github.com/TastyRomeo/hiscores/issues/new" target="_blank">open an issue</a> or <a href="https://github.com/TastyRomeo/hiscores/compare" target="_blank">make a pull request</a>.</li>
       </ul>
       Some details:
       <ul>
         <li>Ranking is always determined by the normalised values;</li>
-        <li>Skills and RuneScore come from the RuneScape Hiscores;</li>
-        <li>Quest Points come from the Adventurer's Log. A blank cell means the data is unavailable;</li>
-        <li>Ironman and Hardcore Ironman badges reflect a daily comparison with the standard Hiscores. A matching record can remain after a player changes modes.</li>
+        <li>RuneScore and Quest Points may not be available depending on activity and privacy settings.</li>
       </ul>
     </div>
   </body>

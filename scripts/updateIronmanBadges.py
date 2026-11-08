@@ -2,15 +2,12 @@ import csv
 from collections import Counter
 from pathlib import Path
 
-from updateHiscores import (
+from players import (
     MAX_CONSECUTIVE_FAILURES,
-    SCORES_PATH,
     DataUnavailable,
     RateLimited,
     create_session,
     get_hiscores,
-    parse_skills,
-    read_scores,
     read_usernames,
     username_key,
 )
@@ -24,32 +21,35 @@ MODE_URLS = (
 )
 
 
+def overall_record(payload):
+    records = payload.get("skills") if isinstance(payload, dict) else None
+    if not isinstance(records, list) or any(not isinstance(record, dict) for record in records):
+        raise DataUnavailable("Invalid Index Lite skills")
+    overall = [record for record in records if record.get("name") == "Overall"]
+    if len(overall) != 1:
+        raise DataUnavailable("Index Lite must contain one Overall record")
+    return overall[0]
+
+
 def find_badge(session, username):
-    standard = None
+    errors = []
     for badge, url in MODE_URLS:
-        payload = get_hiscores(session, username, url)
+        try:
+            payload = get_hiscores(session, username, url)
+            overall = overall_record(payload) if payload is not None else None
+        except RateLimited:
+            raise
+        except DataUnavailable as error:
+            errors.append(f"{badge}: {error}")
+            continue
         if payload is None:
             continue
+        if badge == "hardcore" and isinstance(overall.get("death"), dict):
+            continue
+        return badge
 
-        stats = parse_skills(payload)
-        if badge == "hardcore":
-            overall = next(skill for skill in payload["skills"] if skill["name"] == "Overall")
-            if isinstance(overall.get("death"), dict):
-                continue
-        if stats is None:
-            raise DataUnavailable(f"Incomplete {badge} skill record")
-
-        if standard is None:
-            # Mode scores can freeze when a player loses eligibility.
-            live = get_hiscores(session, username)
-            if live is None:
-                return None
-            standard = parse_skills(live)
-            if standard is None:
-                raise DataUnavailable("Incomplete standard skill record")
-        if stats == standard:
-            return badge
-
+    if errors:
+        raise DataUnavailable("; ".join(errors))
     return None
 
 
@@ -59,48 +59,59 @@ def read_badges():
 
 
 def main():
-    scores, _ = read_scores(SCORES_PATH)
     old_badges = read_badges()
     usernames = read_usernames()
-    candidates = [username for username in usernames if username_key(username) in scores]
-    total = len(candidates)
-    print(f"Checking Ironman badges for {total:,} players with scores "
-          f"({len(usernames) - total:,} without scores).", flush=True)
+    total = len(usernames)
+    print(f"Checking Ironman badges for {total:,} tracked players.", flush=True)
     rows = []
     counts = Counter()
     changes = 0
     consecutive_failures = 0
+    checked = 0
+    stopped = None
 
     with create_session() as session:
-        for index, username in enumerate(candidates, start=1):
+        for index, username in enumerate(usernames, start=1):
             key = username_key(username)
             progress = f"[{index:,}/{total:,}] {username}"
             previous_badge = old_badges.get(key)
             try:
                 badge = find_badge(session, username)
             except RateLimited as error:
-                print(f"{progress}: rate limited ({error})", flush=True)
-                raise SystemExit(f"Keeping the previous badges. {error}") from error
+                badge = None
+                stopped = f"rate limited ({error})"
+                print(f"{progress}: {stopped}, clearing badge", flush=True)
             except DataUnavailable as error:
                 consecutive_failures += 1
                 counts["unavailable"] += 1
-                print(f"{progress}: unavailable ({error}), keeping {previous_badge or 'no badge'}",
+                print(f"{progress}: unavailable ({error}), clearing badge",
                       flush=True)
                 if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
-                    raise SystemExit("Keeping the previous badges because Index Lite is unavailable.")
-                badge = previous_badge
+                    stopped = "consecutive lookup failures"
+                badge = None
             else:
                 consecutive_failures = 0
-                if badge != previous_badge:
-                    changes += 1
-                    print(f"{progress}: {previous_badge or 'no badge'} -> {badge or 'no badge'}",
-                          flush=True)
-                elif index in (1, total) or index % 25 == 0:
-                    print(f"{progress}: {badge or 'no badge'}", flush=True)
+            if badge != previous_badge:
+                changes += 1
+                print(f"{progress}: {previous_badge or 'no badge'} -> {badge or 'no badge'}",
+                      flush=True)
+            elif index in (1, total) or index % 25 == 0:
+                print(f"{progress}: {badge or 'no badge'}", flush=True)
 
+            checked = index
             counts[badge or "no badge"] += 1
             if badge:
                 rows.append((username, badge))
+            if stopped:
+                break
+
+    if stopped:
+        for username in usernames[checked:]:
+            badge = old_badges.get(username_key(username))
+            if badge:
+                rows.append((username, badge))
+        print(f"Stopped after {checked:,}/{total:,} checks: {stopped}. "
+              "Keeping previous badges for unchecked players.", flush=True)
 
     temporary = BADGES_PATH.with_suffix(".tmp")
     with temporary.open("w", newline="", encoding="utf-8") as file:
@@ -109,7 +120,7 @@ def main():
         writer.writerows(rows)
     temporary.replace(BADGES_PATH)
 
-    print(f"Finished {total:,} checks with {changes:,} badge changes. Wrote {len(rows):,} badges.",
+    print(f"Finished {checked:,} checks with {changes:,} badge changes. Wrote {len(rows):,} badges.",
           flush=True)
     if counts:
         print(", ".join(f"{label}: {count}" for label, count in sorted(counts.items())), flush=True)

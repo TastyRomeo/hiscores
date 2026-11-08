@@ -1,382 +1,217 @@
 import argparse
 import csv
+import os
 import time
-from bisect import bisect_right
 from collections import Counter
-from dataclasses import dataclass
-from pathlib import Path
-from urllib.parse import quote
 
-import requests
-
-
-HISCORES_URL = "https://secure.runescape.com/m=hiscore/index_lite.json"
-QUESTS_URL = "https://secure.runescape.com/m=adventurers-log/api/v1/playerQuests"
-USER_AGENT = "RS3 Low HP Hiscores (+https://github.com/TastyRomeo/hiscores)"
-REQUEST_TIMEOUT = (5, 12)
-MAX_CONSECUTIVE_FAILURES = 5
-USERNAMES_PATH = Path("data/usernames.csv")
-SCORES_PATH = Path("data/hiscores.csv")
-FIELDS = (
-    "RSN", "HPLVL", "HPEXP", "TOTLVL", "TOTLVLADJ", "VIRLVL", "VIRLVLADJ",
-    "TOTEXP", "TOTEXPADJ", "CMBLVL", "CMBLVLADJ", "CMBEXPADJ", "RSCORE",
-    "QPOINTS", "TIME",
+from players import (
+    MAX_CONSECUTIVE_FAILURES, MAX_HP_LEVEL, MIN_COMBAT_XP, SCORES_PATH, USERNAMES_PATH, FIELDS,
+    PlayerCheck, RateLimited, check_player, create_session,
+    read_scores, read_usernames, username_key, write_csv, write_usernames,
 )
-
-COMBAT_SKILLS = ("Attack", "Strength", "Magic", "Ranged", "Necromancy",
-                 "Defence", "Hitpoints", "Prayer", "Summoning")
-BASE_SKILLS = set(COMBAT_SKILLS) | {
-    "Cooking", "Woodcutting", "Fletching", "Fishing", "Firemaking", "Crafting",
-    "Smithing", "Mining", "Herblore", "Agility", "Thieving", "Slayer", "Farming",
-    "Runecraft", "Hunter", "Construction", "Dungeoneering", "Divination",
-    "Invention", "Archaeology",
-}
-REQUIRED_SKILLS = BASE_SKILLS | {"Overall"}
-ADJUSTED_HP_LEVEL = 10
-ADJUSTED_HP_XP = 1154
-MAX_HP_LEVEL = 15
-MIN_COMBAT_XP = 100_000
-
-
-class DataUnavailable(Exception):
-    """A network or upstream problem that cannot be attributed to a player."""
-
-
-class RateLimited(DataUnavailable):
-    """Jagex asked this client to stop sending requests."""
-
-
-@dataclass
-class PlayerCheck:
-    status: str
-    row: dict | None = None
-    error: DataUnavailable | None = None
-
-
-def username_key(name):
-    return name.replace("_", " ").replace("\xa0", " ").strip().casefold()
-
-
-def read_usernames(path=USERNAMES_PATH):
-    """Read the headerless roster, preserving the first spelling for each name."""
-    names = {}
-    with open(path, newline="", encoding="utf-8-sig") as file:
-        for row in csv.reader(file):
-            if row and row[0].strip():
-                name = row[0].replace("\xa0", " ").strip()
-                names.setdefault(username_key(name), name)
-    return sorted(names.values(), key=username_key)
-
-
-def read_scores(path):
-    with path.open(newline="", encoding="utf-8") as file:
-        reader = csv.DictReader(file)
-        rows = {}
-        for row in reader:
-            key = username_key(row["RSN"])
-            if key not in rows or int(row["TIME"]) >= int(rows[key]["TIME"]):
-                rows[key] = row
-        return rows, reader.fieldnames
-
-
-def write_csv(path, fieldnames, rows):
-    temporary = path.with_suffix(".tmp")
-    with temporary.open("w", newline="", encoding="utf-8") as file:
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
-    temporary.replace(path)
-
-
-def create_session():
-    session = requests.Session()
-    session.headers.update({"User-Agent": USER_AGENT})
-    return session
-
-
-def request(session, url, **kwargs):
-    try:
-        response = session.get(url, timeout=REQUEST_TIMEOUT, **kwargs)
-    except requests.RequestException as error:
-        raise DataUnavailable(str(error)) from error
-    if response.status_code == 429:
-        raise RateLimited("Jagex returned HTTP 429")
-    return response
-
-
-def response_json(response):
-    try:
-        payload = response.json()
-    except ValueError as error:
-        raise DataUnavailable("invalid JSON from Jagex") from error
-    if not isinstance(payload, dict):
-        raise DataUnavailable("expected a JSON object from Jagex")
-    return payload
-
-
-def get_hiscores(session, username, url=HISCORES_URL):
-    response = request(session, url, params={"player": username})
-    if response.status_code == 404:
-        return None
-    if response.status_code != 200:
-        raise DataUnavailable(f"Index Lite returned HTTP {response.status_code}")
-    return response_json(response)
-
-
-def get_quest_points(session, username):
-    """Return Jagex's in-game total, or None if the player has no public data."""
-    name = quote(username.replace("_", " "), safe="")
-    response = request(session, f"{QUESTS_URL}/{name}")
-    if response.status_code in (403, 404):
-        error = response_json(response).get("error")
-        if error in ("PLAYER_NOT_FOUND", "PLAYER_NOT_MEMBER"):
-            return None
-    if response.status_code != 200:
-        raise DataUnavailable(f"Player Quests returned HTTP {response.status_code}")
-    points = response_json(response).get("qp")
-    if type(points) is not int or points < 0:
-        raise DataUnavailable("Player Quests returned an invalid quest point total")
-    return points
-
-
-def parse_skills(payload):
-    """Read named skills and recover an older partial record when possible."""
-    try:
-        records = payload["skills"]
-        skills = {entry["name"]: (entry["level"], entry["xp"]) for entry in records}
-    except (KeyError, TypeError) as error:
-        raise DataUnavailable("invalid Index Lite skills") from error
-    if len(skills) != len(records) or not REQUIRED_SKILLS.issubset(skills):
-        raise DataUnavailable("Index Lite omitted expected skill records")
-    if any(
-        not isinstance(name, str) or type(level) is not int or level == 0 or level < -1
-        or type(xp) is not int or xp < -1
-        for name, (level, xp) in skills.items()
-    ):
-        raise DataUnavailable("Index Lite returned invalid skill levels or XP")
-
-    total_level, total_xp = skills.pop("Overall")
-    if total_level == -1 or total_xp == -1:
-        return None
-
-    missing_xp = [name for name, (_, xp) in skills.items() if xp == -1]
-    if len(missing_xp) == 1:
-        name = missing_xp[0]
-        level, _ = skills[name]
-        recovered_xp = total_xp - sum(xp for _, xp in skills.values() if xp >= 0)
-        if level == 1:
-            # Older records can also use level 1 as the placeholder for this skill.
-            level = total_level - sum(value for other, (value, _) in skills.items()
-                                      if other != name)
-        skills[name] = (level, recovered_xp)
-
-    missing_levels = [name for name, (level, _) in skills.items() if level == -1]
-    if len(missing_levels) == 1:
-        name = missing_levels[0]
-        recovered_level = total_level - sum(level for level, _ in skills.values()
-                                            if level >= 1)
-        skills[name] = (recovered_level, skills[name][1])
-
-    if any(not 1 <= level <= 126 or not 0 <= xp <= 200_000_000
-           for level, xp in skills.values()):
-        return None
-    return total_level, total_xp, skills
-
-
-def rune_score(payload):
-    activities = payload.get("activities")
-    if not isinstance(activities, list):
-        return ""
-    for activity in activities:
-        if isinstance(activity, dict) and activity.get("name") == "RuneScore":
-            score = activity.get("score")
-            return score if type(score) is int and score >= 0 else ""
-    return ""
-
-
-def combat_level(attack, strength, magic, ranged, necromancy, defence, hitpoints,
-                 prayer, summoning):
-    offensive = max(attack + strength, 2 * magic, 2 * ranged, 2 * necromancy)
-    defensive = defence + hitpoints + prayer // 2 + summoning // 2
-    return (13 * offensive + 10 * defensive) // 40
-
-
-VIRTUAL_XP = (
-    0, 83, 174, 276, 388, 512, 650, 801, 969, 1154, 1358,
-    1584, 1833, 2107, 2411, 2746, 3115, 3523, 3973, 4470, 5018, 5624,
-    6291, 7028, 7842, 8740, 9730, 10824, 12031, 13363, 14833, 16456, 18247,
-    20224, 22406, 24815, 27473, 30408, 33648, 37224, 41171, 45529, 50339, 55649,
-    61512, 67983, 75127, 83014, 91721, 101333, 111945, 123660, 136594, 150872, 166636,
-    184040, 203254, 224466, 247886, 273742, 302288, 333804, 368599, 407015, 449428, 496254,
-    547953, 605032, 668051, 737627, 814445, 899257, 992895, 1096278, 1210421, 1336443, 1475581,
-    1629200, 1798808, 1986068, 2192818, 2421087, 2673114, 2951373, 3258594, 3597792, 3972294, 4385776,
-    4842295, 5346332, 5902831, 6517253, 7195629, 7944614, 8771558, 9684577, 10692629, 11805606, 13034431,
-    14391160, 15889109, 17542976, 19368992, 21385073, 23611006, 26068632, 28782069, 31777943, 35085654, 38737661,
-    42769801, 47221641, 52136869, 57563718, 63555443, 70170840, 77474828, 85539082, 94442737, 104273167,
-)
-
-INVENTION_VIRTUAL_XP = (
-    0, 830, 1861, 2902, 3980, 5126, 6390, 7787, 9400, 11275, 13605,
-    16372, 19656, 23546, 28138, 33520, 39809, 47109, 55535, 64802, 77190, 90811,
-    106221, 123573, 143025, 164742, 188893, 215651, 245196, 277713, 316311, 358547, 404634,
-    454796, 509259, 568254, 632019, 700797, 774834, 854383, 946227, 1044569, 1149696, 1261903,
-    1381488, 1508756, 1644015, 1787581, 1939773, 2100917, 2283490, 2476369, 2679907, 2894505, 3120508,
-    3358307, 3608290, 3870846, 4146374, 4435275, 4758122, 5096111, 5449685, 5819299, 6205407, 6608473,
-    7028964, 7467354, 7924122, 8399751, 8925664, 9472665, 10041285, 10632061, 11245538, 11882262, 12542789,
-    13227679, 13937496, 14672812, 15478994, 16313404, 17176661, 18069395, 18992239, 19945833, 20930821, 21947856,
-    22997593, 24080695, 25259906, 26475754, 27728955, 29020233, 30350318, 31719944, 33129852, 34580790, 36073511,
-    37608773, 39270442, 40978509, 42733789, 44537107, 46389292, 48291180, 50243611, 52247435, 54303504, 56412678,
-    58575823, 60793812, 63067521, 65397835, 67785643, 70231841, 72737330, 75303019, 77929820, 80618654, 83370445,
-    86186124, 89066630, 92012904, 95025896, 98106559, 101255855, 104474750, 107764216, 111125230, 114558777, 118065845,
-    121647430, 125304532, 129038159, 132849323, 136739041, 140708338, 144758242, 148889790, 153104021, 157401983, 161784728,
-    166253312, 170808801, 175452262, 180184770, 185007406, 189921255, 194927409,
+from usernameInbox import (
+    consume_inbox, prepare_related_changes, read_inbox, rename_scores, resolve_renames,
+    write_related_changes,
 )
 
 
-def check_player(session, username):
-    """Check leaderboard eligibility without depending on Adventurer's Log."""
-    try:
-        payload = get_hiscores(session, username)
-        if payload is None:
-            return PlayerCheck("not_found")
-        parsed = parse_skills(payload)
-    except DataUnavailable as error:
-        return PlayerCheck("unavailable", error=error)
-
-    if parsed is None:
-        return PlayerCheck("incomplete")
-    total_level, total_xp, skills = parsed
-    hp_level, hp_xp = skills["Hitpoints"]
-    if hp_level > MAX_HP_LEVEL:
-        return PlayerCheck("constitution")
-
-    adjusted_combat_xp = ADJUSTED_HP_XP + sum(
-        skills[name][1] for name in COMBAT_SKILLS if name != "Hitpoints"
-    )
-    if adjusted_combat_xp < MIN_COMBAT_XP:
-        return PlayerCheck("combat_xp")
-
-    virtual_levels = {
-        name: bisect_right(INVENTION_VIRTUAL_XP if name == "Invention" else VIRTUAL_XP, xp)
-        for name, (_, xp) in skills.items()
-    }
-    virtual_level = sum(virtual_levels.values())
-    combat_levels = [skills[name][0] for name in COMBAT_SKILLS]
-    combat = combat_level(*combat_levels)
-    combat_levels[COMBAT_SKILLS.index("Hitpoints")] = ADJUSTED_HP_LEVEL
-
-    return PlayerCheck("eligible", {
-        "RSN": username,
-        "HPLVL": hp_level,
-        "HPEXP": hp_xp,
-        "TOTLVL": total_level,
-        "TOTLVLADJ": total_level - hp_level + ADJUSTED_HP_LEVEL,
-        "VIRLVL": virtual_level,
-        "VIRLVLADJ": virtual_level - virtual_levels["Hitpoints"] + ADJUSTED_HP_LEVEL,
-        "TOTEXP": total_xp,
-        "TOTEXPADJ": total_xp - hp_xp + ADJUSTED_HP_XP,
-        "CMBLVL": combat,
-        "CMBLVLADJ": combat_level(*combat_levels),
-        "CMBEXPADJ": adjusted_combat_xp,
-        "RSCORE": rune_score(payload),
-        "TIME": int(time.time()),
-    })
+DAY = 24 * 60 * 60
+INELIGIBLE_RESULTS = {"constitution", "combat_xp"}
 
 
-def refresh_scores(session, usernames):
-    total = len(usernames)
-    scores = {}
+def refresh_players(session, usernames, refresh_player_data=False):
+    checks = {}
+    aliases = {}
+    player_data_cache = {}
     counts = Counter()
-    consecutive_failures = 0
-
-    print(f"Checking {total:,} players on Hiscores.", flush=True)
+    unavailable = 0
+    optional_failures = 0
+    total = len(usernames)
     for index, username in enumerate(usernames, start=1):
-        result = check_player(session, username)
+        key = username_key(username)
+        result = aliases.get(key)
+        if result is None:
+            result = check_player(session, username, player_data_cache, refresh_player_data)
+        checks[key] = result
         counts[result.status] += 1
-        progress = f"[{index:,}/{total:,}] {username}"
-        if result.status == "unavailable":
-            consecutive_failures += 1
-            print(f"{progress} | unavailable ({result.error})", flush=True)
-            if (isinstance(result.error, RateLimited)
-                    or consecutive_failures >= MAX_CONSECUTIVE_FAILURES):
-                raise SystemExit("Stopping the refresh because Index Lite is unavailable.")
+        if result.row is not None:
+            aliases[username_key(result.row["RSN"])] = result
+        progress = f"[{index:,}/{total:,}] {username}: {result.status.replace('_', ' ')}"
+        if result.row is not None:
+            row = result.row
+            progress += f" | HP {row['HPLVL']} ({row['HPEXP']:,} XP) | Total XP {row['TOTEXP']:,}"
+        if result.error is not None:
+            progress += f" ({result.error})"
+        print(progress, flush=True)
+
+        if isinstance(result.error, RateLimited):
+            print("Stopping requests after HTTP 429; unchecked entries use the missing-data grace period.", flush=True)
+            break
+        unavailable = unavailable + 1 if result.status == "unavailable" else 0
+        if unavailable >= MAX_CONSECUTIVE_FAILURES:
+            print("Stopping requests after repeated failures; retaining recent cached entries.", flush=True)
+            break
+        optional_failures = optional_failures + 1 if (
+            refresh_player_data and result.source == "hiscores" and result.error is not None
+        ) else 0
+        if optional_failures >= MAX_CONSECUTIVE_FAILURES:
+            print("Skipping optional Player Data refreshes after repeated failures.", flush=True)
+            refresh_player_data = False
+    print(", ".join(f"{status}: {count}" for status, count in sorted(counts.items())), flush=True)
+    return checks
+
+
+def publish_scores(usernames, checks, old_scores, inactive_days, now):
+    roster = {}
+    corrections = {}
+    published = {}
+    for username in usernames:
+        key = username_key(username)
+        result = checks.get(key, PlayerCheck("unavailable"))
+        fresh = result.row if result.status == "eligible" else None
+        canonical = fresh["RSN"] if fresh is not None else username
+        canonical_key = username_key(canonical)
+        roster.setdefault(canonical_key, canonical)
+        if canonical != username:
+            corrections[canonical_key] = canonical
+            print(f"Correcting username {username!r} to {canonical!r}")
+
+        old = old_scores.get(key)
+        if old is None:
+            old = old_scores.get(canonical_key)
+        if fresh is not None:
+            row = dict(fresh)
+            if row.get("QPOINTS", "") == "":
+                row["QPOINTS"] = old.get("QPOINTS", "") if old is not None else ""
+            if row.get("RSCORE", "") == "" and old is not None:
+                row["RSCORE"] = old.get("RSCORE", "")
+        elif result.status in INELIGIBLE_RESULTS:
             continue
-
-        consecutive_failures = 0
-        row = result.row
-        if row is None:
-            print(f"{progress} | {result.status.replace('_', ' ')}", flush=True)
+        elif old is not None and now - int(old["TIME"]) < inactive_days * DAY:
+            row = dict(old)
+        else:
             continue
+        row["RSN"] = canonical
+        if canonical_key in published:
+            previous = published[canonical_key]
+            if (int(previous["TIME"]), int(previous["TOTEXP"])) > (int(row["TIME"]), int(row["TOTEXP"])):
+                row, previous = previous, row
+            for field in ("QPOINTS", "RSCORE"):
+                if row.get(field, "") == "":
+                    row[field] = previous.get(field, "")
+        published[canonical_key] = row
+    roster.update(corrections)
+    for key, row in published.items():
+        row["RSN"] = roster[key]
+    return [roster[key] for key in sorted(roster)], [published[key] for key in sorted(published)]
 
-        scores[username_key(username)] = row
-        print(
-            f"{progress} | HP {row['HPLVL']} ({row['HPEXP']:,} XP)"
-            f" | Total level {row['TOTLVL']:,} | Virtual level {row['VIRLVL']:,}"
-            f" | Total XP {row['TOTEXP']:,} | Combat {row['CMBLVL']}"
-            f" | RuneScore {row['RSCORE']}",
-            flush=True,
-        )
 
-    print(", ".join(f"{status}: {count}" for status, count in sorted(counts.items())))
-    if not scores:
-        raise SystemExit("Index Lite returned no eligible players. Keeping the existing scores.")
-    return scores
+def print_summary(usernames, checks, old_scores, rows, inactive_days, now):
+    statuses = {status: [] for status in (
+        "eligible", "constitution", "combat_xp", "not_found", "incomplete", "unavailable", "unchecked",
+    )}
+    corrections = []
+    warnings = []
+    retained = []
+    expired = []
+    published = {username_key(row["RSN"]) for row in rows}
+    refreshed = {
+        username_key(result.row["RSN"]) for result in checks.values()
+        if result.status == "eligible" and result.row is not None
+    }
+    for username in sorted(usernames, key=username_key):
+        key = username_key(username)
+        result = checks.get(key)
+        status = result.status if result is not None else "unchecked"
+        detail = username
+        if status == "unavailable" and result.error is not None:
+            detail += f" ({result.error})"
+        statuses[status].append(detail)
+        if status == "eligible" and result.row is not None:
+            canonical = result.row["RSN"]
+            if canonical != username:
+                corrections.append(f"{username!r} -> {canonical!r}")
+            if result.error is not None:
+                warnings.append(f"{canonical} ({result.error})")
+        elif status not in INELIGIBLE_RESULTS and key not in refreshed:
+            old = old_scores.get(key)
+            if old is not None:
+                if key in published:
+                    retained.append(username)
+                elif now - int(old["TIME"]) >= inactive_days * DAY:
+                    expired.append(username)
 
-
-def refresh_quest_points(session, rows):
-    counts = {"updated": 0, "no public data": 0, "unavailable": 0}
-    consecutive_failures = 0
-    total = len(rows)
-
-    print(f"Checking Quest Points for {total:,} published players.", flush=True)
-    for index, row in enumerate(rows, start=1):
-        progress = f"[{index:,}/{total:,}] {row['RSN']}"
-        try:
-            points = get_quest_points(session, row["RSN"])
-        except DataUnavailable as error:
-            counts["unavailable"] += 1
-            consecutive_failures += 1
-            print(f"{progress} | unavailable ({error})", flush=True)
-            if (isinstance(error, RateLimited)
-                    or consecutive_failures >= MAX_CONSECUTIVE_FAILURES):
-                print("Stopping the Quest Points refresh. Keeping cached values for unchecked players.")
-                break
-            continue
-        consecutive_failures = 0
-        row["QPOINTS"] = points
-        counts["no public data" if points is None else "updated"] += 1
-        result = "no public data" if points is None else f"{points} QP"
-        print(f"{progress} | {result}", flush=True)
-
-    print("Quest Points " + ", ".join(f"{label}: {count}" for label, count in counts.items()))
+    groups = (
+        (f"Accounts ruined (Constitution above {MAX_HP_LEVEL})", statuses["constitution"]),
+        (f"Not ranked (adjusted combat XP below {MIN_COMBAT_XP:,})", statuses["combat_xp"]),
+        ("Missing players / possible RSN changes", statuses["not_found"]),
+        ("Incomplete player data", statuses["incomplete"]),
+        ("Unavailable player data", statuses["unavailable"]),
+        ("Unchecked accounts", statuses["unchecked"]),
+        ("Username corrections", corrections),
+        ("API warnings (usable stats)", warnings),
+        (f"Cached scores retained ({inactive_days}-day grace period)", retained),
+        (f"Cached scores expired ({inactive_days}-day grace period)", expired),
+    )
+    checked = len(usernames) - len(statuses["unchecked"])
+    print("\nHiScores update summary", flush=True)
+    print(f"Published {len(rows):,} scores from {len(usernames):,} tracked accounts.", flush=True)
+    print(f"Checked {checked:,}/{len(usernames):,} accounts; {len(statuses['eligible']):,} returned eligible stats.", flush=True)
+    for label, names in groups:
+        detail = f" ({', '.join(names)})" if names else ""
+        print(f"{label}: {len(names):,}{detail}", flush=True)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Refresh the leaderboard.")
-    parser.add_argument("--refresh-quest-points", action="store_true",
-                        help="Fetch Quest Points for all published scores.")
+    parser.add_argument("--refresh-player-data", "--refresh-quest-points", dest="refresh_player_data",
+                        action="store_true", help="Refresh skills and Quest Points using Player Data.")
+    parser.add_argument("--inactive-days", type=int, default=os.getenv("HISCORES_INACTIVE_DAYS") or 14)
     args = parser.parse_args()
+    if args.inactive_days < 1:
+        parser.error("inactive days must be positive")
 
-    usernames = read_usernames()
+    tracked = read_usernames(USERNAMES_PATH)
+    inbox_path = USERNAMES_PATH.with_name("username_inbox.csv")
+    try:
+        queued = read_inbox(inbox_path)
+        renames = resolve_renames(queued)
+    except (ValueError, csv.Error) as error:
+        parser.error(str(error))
+    renamed = [renames.get(username_key(name), name) for name in tracked]
+    roster = {username_key(name): name for name in renamed if name}
+    additions = []
+    pending = [new for old, new in queued if not old] + [name for name in renames.values() if name]
+    for name in pending:
+        # A separate addition can restore a removed name without its old data.
+        name = renames.get(username_key(name), name) or name
+        key = username_key(name)
+        if key not in roster:
+            roster[key] = name
+            additions.append(name)
+    usernames = [roster[key] for key in sorted(roster)]
+    if queued:
+        detail = f" ({', '.join(additions)})" if additions else ""
+        print(f"New usernames from inbox: {len(additions):,}{detail}", flush=True)
+        for old, _ in queued:
+            if old:
+                new = renames[username_key(old)]
+                message = f"Changing username {old!r} to {new!r}" if new else f"Removing username {old!r}"
+                print(message, flush=True)
     old_scores, columns = read_scores(SCORES_PATH)
+    old_scores = rename_scores(old_scores, renames)
+    related_changes = prepare_related_changes(USERNAMES_PATH.parent, renames)
     with create_session() as session:
-        new_scores = refresh_scores(session, usernames)
-        rows = []
-        for name in usernames:
-            key = username_key(name)
-            old = old_scores.get(key)
-            score = new_scores.get(key)
-            if score is None or (old is not None and int(old["TIME"]) > score["TIME"]):
-                score = old
-            if score is not None:
-                score["RSN"] = name
-                score["QPOINTS"] = old.get("QPOINTS", "") if old is not None else ""
-                rows.append(score)
-        if args.refresh_quest_points or "QPOINTS" not in columns:
-            refresh_quest_points(session, rows)
-
+        checks = refresh_players(session, usernames, args.refresh_player_data or "QPOINTS" not in columns)
+    now = int(time.time())
+    corrected, rows = publish_scores(usernames, checks, old_scores, args.inactive_days, now)
     write_csv(SCORES_PATH, FIELDS, rows)
-    print(f"Merged {len(new_scores):,} refreshed scores into {len(rows):,} published rows.")
+    if corrected != tracked:
+        write_usernames(USERNAMES_PATH, corrected)
+    write_related_changes(related_changes)
+    if queued and inbox_path.exists():
+        consume_inbox(inbox_path, queued)
+    print_summary(usernames, checks, old_scores, rows, args.inactive_days, now)
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '40 3 * * *'
-    - cron: '40 0-2,4-23 * * *'
+    - cron: '40 1,5-23/2 * * *'
 
 permissions:
   contents: write
@@ -17,7 +17,7 @@ jobs:
   update:
     if: github.ref_type == 'branch'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 360
     steps:
       - name: Checkout the latest data
         uses: actions/checkout@v7
@@ -28,12 +28,14 @@ jobs:
         with:
           python-version: '3.x'
       - name: Refresh HiScores
+        env:
+          HISCORES_INACTIVE_DAYS: ${{ vars.HISCORES_INACTIVE_DAYS }}
         run: |
           python3 -m pip install requests
           python3 -u scripts/updateHiscores.py \
-            ${{ (github.event_name == 'workflow_dispatch' || github.event.schedule == '40 3 * * *') && '--refresh-quest-points' || '' }}
+            ${{ (github.event_name == 'workflow_dispatch' || github.event.schedule == '40 3 * * *') && '--refresh-player-data' || '' }}
       - name: Commit files
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: 'Update hiscores.csv'
-          file_pattern: 'data/hiscores.csv'
+          file_pattern: 'data/hiscores.csv data/usernames.csv data/username_inbox.csv data/ironman-badges.csv data/removed-usernames.csv data/username-maintenance.json'
